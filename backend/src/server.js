@@ -18,7 +18,7 @@ const initDatabase = async () => {
   try {
     console.log('Initializing database...');
 
-    // Users tablosu
+    // Users table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,7 +31,7 @@ const initDatabase = async () => {
       );
     `);
 
-    // Username column ekle (eğer yoksa)
+    // Add username column if it doesn't exist
     await pool.query(`
       ALTER TABLE users
       ADD COLUMN IF NOT EXISTS username VARCHAR(100) UNIQUE;
@@ -39,7 +39,7 @@ const initDatabase = async () => {
 
     console.log('✓ Users table created');
 
-    // Questions tablosu
+    // Questions table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS questions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -55,7 +55,7 @@ const initDatabase = async () => {
     `);
     console.log('✓ Questions table created');
 
-    // Answers tablosu
+    // Answers table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS answers (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -69,7 +69,7 @@ const initDatabase = async () => {
     `);
     console.log('✓ Answers table created');
 
-    // Documents tablosu
+    // Documents table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS documents (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -84,7 +84,7 @@ const initDatabase = async () => {
     `);
     console.log('✓ Documents table created');
 
-    // Admin kullanıcısı oluştur
+    // Create admin user
     await pool.query(`
       INSERT INTO users (email, password, username, status, updated_at)
       VALUES ('admin@privacypolicy.com', '$2a$10$qZxZ.9Z9X8Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z', 'admin', 'ADMIN', NOW())

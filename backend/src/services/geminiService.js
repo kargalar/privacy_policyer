@@ -8,13 +8,13 @@ export const generateDocuments = async (appData) => {
 
         // Set default values
         const appName = appData.appName || 'Application';
-        const appType = appData.apptype || 'Mobile Application';
-        const email = appData.email || 'info@example.com';
-        const collectsPhone = appData.collectsphone || 'false';
-        const collectsVoice = appData.collectsvoice || 'false';
-        const collectsPayment = appData.collectspayment || 'false';
-        const socialMedia = appData.socialmedia || 'None';
-        const thirdParty = appData.thirdparty || 'None';
+        const appType = appData.whattypeofapplicationisit || 'Mobile Application';
+        const email = appData.contactemailaddress || 'info@example.com';
+        const collectsPhone = appData.doyoucollectphonenumbers || 'false';
+        const collectsVoice = appData.doyoucollectvoiceorvideodata || 'false';
+        const collectsPayment = appData.doyoucollectpaymentinformation || 'false';
+        const socialMedia = appData.doyouhavesocialmediaintegration || 'None';
+        const thirdParty = appData.doyouusethirdpartyservices || 'None';
 
         console.log('Gemini API - Used data:', {
             appName,
@@ -23,6 +23,8 @@ export const generateDocuments = async (appData) => {
             collectsPhone,
             collectsVoice,
             collectsPayment,
+            socialMedia,
+            thirdParty,
         });
 
         // Create Privacy Policy

@@ -1,7 +1,6 @@
 import pool from '../utils/database.js';
 import { v4 as uuidv4 } from 'uuid';
 import { generateDocuments } from './geminiService.js';
-import { getAnswersForGeneration } from './questionService.js';
 
 export const createDocument = async (userId, appName, appData) => {
     try {

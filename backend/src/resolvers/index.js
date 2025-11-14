@@ -100,17 +100,8 @@ export const resolvers = {
             };
         },
 
-        submitAnswers: async (_, { answers }, context) => {
-            const user = requireAuth(context);
-            await questionService.submitAnswers(user.id, answers);
-            return true;
-        },
-
         generateDocuments: async (_, { appName, answers }, context) => {
             const user = requireAuth(context);
-
-            // Cevapları kaydet
-            await questionService.submitAnswers(user.id, answers);
 
             // Cevaplardan app data oluştur
             const appData = { appName }; // appName'i ekle

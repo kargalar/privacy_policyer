@@ -50,12 +50,6 @@ export const GET_QUESTIONS_QUERY = gql`
   }
 `;
 
-export const SUBMIT_ANSWERS_MUTATION = gql`
-  mutation SubmitAnswers($answers: [AnswerInput!]!) {
-    submitAnswers(answers: $answers)
-  }
-`;
-
 export const GENERATE_DOCUMENTS_MUTATION = gql`
   mutation GenerateDocuments($appName: String!, $answers: [AnswerInput!]!) {
     generateDocuments(appName: $appName, answers: $answers) {

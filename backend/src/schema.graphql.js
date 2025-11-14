@@ -38,11 +38,6 @@ export const typeDefs = `#graphql
     sortOrder: Int
   }
 
-  type Answer {
-    questionId: ID!
-    value: String!
-  }
-
   type Document {
     id: ID!
     userId: ID!
@@ -83,9 +78,6 @@ export const typeDefs = `#graphql
     # Auth
     register(email: String!, password: String!, username: String!): User!
     login(email: String!, password: String!): AuthPayload!
-    
-    # Questions
-    submitAnswers(answers: [AnswerInput!]!): Boolean!
     
     # Documents
     generateDocuments(appName: String!, answers: [AnswerInput!]!): Document!
