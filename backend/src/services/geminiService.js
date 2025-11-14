@@ -6,17 +6,17 @@ export const generateDocuments = async (appData) => {
     try {
         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-        // Varsayılan değerler ata
-        const appName = appData.appName || 'Uygulama';
-        const appType = appData.apptype || 'Mobil Uygulama';
+        // Set default values
+        const appName = appData.appName || 'Application';
+        const appType = appData.apptype || 'Mobile Application';
         const email = appData.email || 'info@example.com';
         const collectsPhone = appData.collectsphone || 'false';
         const collectsVoice = appData.collectsvoice || 'false';
         const collectsPayment = appData.collectspayment || 'false';
-        const socialMedia = appData.socialmedia || 'Yok';
-        const thirdParty = appData.thirdparty || 'Yok';
+        const socialMedia = appData.socialmedia || 'None';
+        const thirdParty = appData.thirdparty || 'None';
 
-        console.log('Gemini API - Kullanılan veriler:', {
+        console.log('Gemini API - Used data:', {
             appName,
             appType,
             email,
@@ -25,37 +25,37 @@ export const generateDocuments = async (appData) => {
             collectsPayment,
         });
 
-        // Privacy Policy oluştur
+        // Create Privacy Policy
         const privacyPolicyPrompt = `
-      Aşağıdaki bilgilere göre profesyonel bir Privacy Policy oluştur. 
-      Türkçe ve hukuki olarak geçerli olacak şekilde yaz.
+      Create a professional Privacy Policy based on the following information.
+      Write it in English and ensure it is legally valid.
       
-      Uygulama Adı: ${appName}
-      Uygulama Türü: ${appType}
-      E-posta Adresi: ${email}
-      Telefon Numarası Toplamı: ${collectsPhone === 'true' ? 'Evet' : 'Hayır'}
-      Konuşma/Video Verisi Toplama: ${collectsVoice === 'true' ? 'Evet' : 'Hayır'}
-      Ödeme Bilgisi Toplama: ${collectsPayment === 'true' ? 'Evet' : 'Hayır'}
-      Sosyal Medya Entegrasyonu: ${socialMedia}
-      Üçüncü Taraf Hizmetleri: ${thirdParty}
+      Application Name: ${appName}
+      Application Type: ${appType}
+      Contact Email: ${email}
+      Collects Phone Number: ${collectsPhone === 'true' ? 'Yes' : 'No'}
+      Collects Voice/Video Data: ${collectsVoice === 'true' ? 'Yes' : 'No'}
+      Collects Payment Information: ${collectsPayment === 'true' ? 'Yes' : 'No'}
+      Social Media Integration: ${socialMedia}
+      Third-party Services: ${thirdParty}
       
-      Profesyonel, kapsamlı, yasal açıdan geçerli bir Privacy Policy döndür.
-      HTML formatında değil, düz metin formatında döndür.
-      En az 1000 kelime uzunluğunda olmalı.
+      Return a professional, comprehensive, and legally valid Privacy Policy.
+      Do not use HTML format, return plain text format.
+      Should be at least 1000 words long.
     `;
 
-        // Terms of Service oluştur
+        // Create Terms of Service
         const tosPrompt = `
-      Aşağıdaki bilgilere göre profesyonel bir Terms of Service oluştur. 
-      Türkçe ve hukuki olarak geçerli olacak şekilde yaz.
+      Create a professional Terms of Service based on the following information.
+      Write it in English and ensure it is legally valid.
       
-      Uygulama Adı: ${appName}
-      Uygulama Türü: ${appType}
-      E-posta Adresi: ${email}
+      Application Name: ${appName}
+      Application Type: ${appType}
+      Contact Email: ${email}
       
-      Profesyonel, kapsamlı, yasal açıdan geçerli bir Terms of Service döndür.
-      HTML formatında değil, düz metin formatında döndür.
-      En az 1000 kelime uzunluğunda olmalı.
+      Return a professional, comprehensive, and legally valid Terms of Service.
+      Do not use HTML format, return plain text format.
+      Should be at least 1000 words long.
     `;
 
         console.log('Generating Privacy Policy with Gemini...');

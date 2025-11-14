@@ -33,7 +33,7 @@ const ApprovalPage = () => {
             },
             onError: (error) => {
                 console.error('Error approving user:', error);
-                alert('Kullanıcı onaylanırken hata oluştu');
+                alert('Error approving user');
             },
         }
     );
@@ -47,7 +47,7 @@ const ApprovalPage = () => {
             },
             onError: (error) => {
                 console.error('Error rejecting user:', error);
-                alert('Kullanıcı reddedilirken hata oluştu');
+                alert('Error rejecting user');
             },
         }
     );
@@ -84,10 +84,10 @@ const ApprovalPage = () => {
             {/* Top Navbar */}
             <nav className="bg-white border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-                    <div className="text-gray-600 text-sm">Admin - Kullanıcı Onayları</div>
+                    <div className="text-gray-600 text-sm">Admin - User Approvals</div>
                     <div className="flex items-center gap-4">
                         <div className="text-right">
-                            <p className="text-xs text-gray-500">Yönetici</p>
+                            <p className="text-xs text-gray-500">Administrator</p>
                             <p className="text-sm font-semibold text-gray-900">@{user?.username}</p>
                         </div>
                         <button
@@ -96,7 +96,7 @@ const ApprovalPage = () => {
                                 navigate('/login');
                             }}
                             className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                            title="Çıkış Yap"
+                            title="Sign Out"
                         >
                             <LogOut className="w-4 h-4" />
                         </button>
@@ -113,14 +113,14 @@ const ApprovalPage = () => {
                             className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700"
                         >
                             <ArrowLeft className="w-4 h-4" />
-                            Geri Dön
+                            Back
                         </button>
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900">
-                        Kullanıcı Onayları
+                        User Approvals
                     </h1>
                     <p className="text-gray-600 mt-2">
-                        Onay bekleyen kullanıcıları yönetin
+                        Manage pending users
                     </p>
                 </div>
             </header>
@@ -131,10 +131,10 @@ const ApprovalPage = () => {
                     <div className="bg-white rounded-lg shadow-md p-12 text-center">
                         <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                            Tüm Kullanıcılar Onaylandı
+                            All Users Approved
                         </h2>
                         <p className="text-gray-600">
-                            Şu anda onay bekleyen kullanıcı yoktur
+                            No pending users at the moment
                         </p>
                     </div>
                 ) : (
@@ -143,16 +143,16 @@ const ApprovalPage = () => {
                             <thead>
                                 <tr className="bg-white border-b border-gray-200">
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                        Kullanıcı Adı
+                                        Username
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                        E-posta
+                                        Email
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                        Kayıt Tarihi
+                                        Registration Date
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                        İşlemler
+                                        Actions
                                     </th>
                                 </tr>
                             </thead>
@@ -166,7 +166,7 @@ const ApprovalPage = () => {
                                             {pendingUser.email}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {new Date(pendingUser.createdAt).toLocaleDateString('tr-TR')}
+                                            {new Date(pendingUser.createdAt).toLocaleDateString('en-US')}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div className="flex items-center gap-2">
@@ -180,7 +180,7 @@ const ApprovalPage = () => {
                                                     ) : (
                                                         <CheckCircle className="w-4 h-4" />
                                                     )}
-                                                    Onayla
+                                                    Approve
                                                 </button>
                                                 <button
                                                     onClick={() => handleReject(pendingUser.id)}
@@ -192,7 +192,7 @@ const ApprovalPage = () => {
                                                     ) : (
                                                         <XCircle className="w-4 h-4" />
                                                     )}
-                                                    Reddet
+                                                    Reject
                                                 </button>
                                             </div>
                                         </td>

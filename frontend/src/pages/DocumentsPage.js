@@ -37,16 +37,16 @@ const DocumentsPage = () => {
 
     const getStatusBadge = (status) => {
         const statusConfig = {
-            DRAFT: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Taslak' },
+            DRAFT: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Draft' },
             APPROVED: {
                 bg: 'bg-blue-100',
                 text: 'text-blue-800',
-                label: 'Onaylı',
+                label: 'Approved',
             },
             PUBLISHED: {
                 bg: 'bg-green-100',
                 text: 'text-green-800',
-                label: 'Yayınlandı',
+                label: 'Published',
             },
         };
 
@@ -66,15 +66,15 @@ const DocumentsPage = () => {
                     <div className="flex justify-between items-start mb-4">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900">
-                                Dokümanlarım
+                                My Documents
                             </h1>
                             <p className="text-gray-600 mt-2">
-                                Oluşturduğunuz tüm belgeler
+                                All documents you've created
                             </p>
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="text-right">
-                                <p className="text-sm text-gray-600">Hoş geldiniz</p>
+                                <p className="text-sm text-gray-600">Welcome</p>
                                 <p className="text-lg font-semibold text-gray-900">@{user?.username}</p>
                             </div>
                             <button
@@ -83,7 +83,7 @@ const DocumentsPage = () => {
                                     navigate('/login');
                                 }}
                                 className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                                title="Çıkış Yap"
+                                title="Sign Out"
                             >
                                 <LogOut className="w-5 h-5" />
                             </button>
@@ -96,7 +96,7 @@ const DocumentsPage = () => {
                                 className="flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
                             >
                                 <CheckCircle className="w-5 h-5" />
-                                Onay Bekleyen
+                                Pending Approvals
                             </button>
                         )}
                         <button
@@ -104,7 +104,7 @@ const DocumentsPage = () => {
                             className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                         >
                             <Plus className="w-5 h-5" />
-                            Yeni Doküman
+                            New Document
                         </button>
                     </div>
                 </div>
@@ -116,17 +116,17 @@ const DocumentsPage = () => {
                     <div className="bg-white rounded-lg shadow-md p-12 text-center">
                         <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                            Henüz Doküman Oluşturmadınız
+                            No Documents Created Yet
                         </h2>
                         <p className="text-gray-600 mb-6">
-                            Başlamak için yeni bir doküman oluşturun
+                            Create a new document to get started
                         </p>
                         <button
                             onClick={() => navigate('/create')}
                             className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                         >
                             <Plus className="w-5 h-5" />
-                            Yeni Doküman Oluştur
+                            Create New Document
                         </button>
                     </div>
                 ) : (
@@ -147,11 +147,11 @@ const DocumentsPage = () => {
                                 </h3>
 
                                 <p className="text-sm text-gray-600 mb-4">
-                                    Oluşturma: {new Date(doc.createdAt).toLocaleDateString('tr-TR')}
+                                    Created: {new Date(doc.createdAt).toLocaleDateString('en-US')}
                                 </p>
 
                                 <div className="flex items-center gap-2 text-indigo-600 font-medium group">
-                                    Ayrıntıları Gör
+                                    View Details
                                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
                                 </div>
                             </div>

@@ -22,7 +22,7 @@ const RegisterPage = () => {
             }, 2000);
         },
         onError: (error) => {
-            setError(error.message || 'Kayıt başarısız oldu');
+            setError(error.message || 'Registration failed');
         },
     });
 
@@ -40,12 +40,12 @@ const RegisterPage = () => {
 
         // Validations
         if (!formData.email || !formData.password || !formData.username) {
-            setError('Lütfen tüm alanları doldurun');
+            setError('Please fill in all fields');
             return;
         }
 
         if (formData.password.length < 6) {
-            setError('Şifre en az 6 karakter olmalı');
+            setError('Password must be at least 6 characters');
             return;
         }
 
@@ -64,13 +64,13 @@ const RegisterPage = () => {
                 <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md text-center">
                     <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
                     <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                        Kayıt Başarılı!
+                        Registration Successful!
                     </h1>
                     <p className="text-gray-600 mb-4">
-                        Hesabınız oluşturuldu. Lütfen admin onayını bekleyin.
+                        Your account has been created. Please wait for admin approval.
                     </p>
                     <p className="text-sm text-gray-500">
-                        Giriş sayfasına yönlendiriliyorsunuz...
+                        Redirecting to login page...
                     </p>
                 </div>
             </div>
@@ -85,10 +85,10 @@ const RegisterPage = () => {
                 </div>
 
                 <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">
-                    Kayıt Ol
+                    Create Account
                 </h1>
                 <p className="text-center text-gray-600 mb-6">
-                    Yeni bir hesap oluşturun
+                    Create a new account
                 </p>
 
                 {error && (
@@ -101,7 +101,7 @@ const RegisterPage = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Kullanıcı Adı
+                            Username
                         </label>
                         <input
                             type="text"
@@ -112,13 +112,13 @@ const RegisterPage = () => {
                             placeholder="john_doe"
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            Public doküman URL'lerinde kullanılacak
+                            Used in public document URLs
                         </p>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            E-posta
+                            Email
                         </label>
                         <input
                             type="email"
@@ -126,13 +126,13 @@ const RegisterPage = () => {
                             value={formData.email}
                             onChange={handleChange}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            placeholder="ornek@email.com"
+                            placeholder="example@email.com"
                         />
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Şifre
+                            Password
                         </label>
                         <input
                             type="password"
@@ -149,15 +149,15 @@ const RegisterPage = () => {
                         disabled={loading}
                         className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {loading ? 'Kayıt yapılıyor...' : 'Kayıt Ol'}
+                        {loading ? 'Creating account...' : 'Create Account'}
                     </button>
                 </form>
 
                 <div className="mt-6 text-center">
                     <p className="text-gray-600">
-                        Zaten hesabınız var mı?{' '}
+                        Already have an account?{' '}
                         <Link to="/login" className="text-indigo-600 font-medium hover:underline">
-                            Giriş Yapın
+                            Sign In
                         </Link>
                     </p>
                 </div>

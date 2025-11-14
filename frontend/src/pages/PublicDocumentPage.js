@@ -19,7 +19,7 @@ const PublicDocumentPage = () => {
     if (loading) {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center">
-                <p className="text-gray-600">Yükleniyor...</p>
+                <p className="text-gray-600">Loading...</p>
             </div>
         );
     }
@@ -27,7 +27,7 @@ const PublicDocumentPage = () => {
     if (error || !data?.publicDocument) {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center">
-                <p className="text-gray-600">Doküman bulunamadı.</p>
+                <p className="text-gray-600">Document not found.</p>
             </div>
         );
     }

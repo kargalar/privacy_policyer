@@ -19,7 +19,7 @@ const LoginPage = () => {
             navigate('/documents');
         },
         onError: (error) => {
-            setError(error.message || 'Giriş başarısız oldu');
+            setError(error.message || 'Login failed');
         },
     });
 
@@ -28,7 +28,7 @@ const LoginPage = () => {
         setError('');
 
         if (!email || !password) {
-            setError('Lütfen tüm alanları doldurun');
+            setError('Please fill in all fields');
             return;
         }
 
@@ -48,10 +48,10 @@ const LoginPage = () => {
                 </div>
 
                 <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">
-                    Giriş Yap
+                    Sign In
                 </h1>
                 <p className="text-center text-gray-600 mb-6">
-                    Privacy Policy Genertor'e hoş geldiniz
+                    Welcome to Privacy Policy Generator
                 </p>
 
                 {error && (
@@ -64,20 +64,20 @@ const LoginPage = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            E-posta
+                            Email
                         </label>
                         <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            placeholder="ornek@email.com"
+                            placeholder="example@email.com"
                         />
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Şifre
+                            Password
                         </label>
                         <input
                             type="password"
@@ -93,15 +93,15 @@ const LoginPage = () => {
                         disabled={loading}
                         className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+                        {loading ? 'Signing in...' : 'Sign In'}
                     </button>
                 </form>
 
                 <div className="mt-6 text-center">
                     <p className="text-gray-600">
-                        Hesabınız yok mu?{' '}
+                        Don't have an account?{' '}
                         <Link to="/register" className="text-indigo-600 font-medium hover:underline">
-                            Kayıt Olun
+                            Sign Up
                         </Link>
                     </p>
                 </div>

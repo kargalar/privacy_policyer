@@ -47,7 +47,7 @@ const DocumentPage = () => {
         fetchPolicy: 'cache-and-network', // Cache'den oku ama network'ten de al
     });
 
-    // Doküman hazırlanırken polling yap, hazır olunca durdur
+    // Poll while document is being prepared, stop when ready
     useEffect(() => {
         if (documentData?.document?.privacyPolicy && documentData?.document?.termsOfService) {
             stopPolling();
@@ -58,10 +58,10 @@ const DocumentPage = () => {
         APPROVE_DOCUMENT_MUTATION,
         {
             onCompleted: () => {
-                alert('Doküman onaylandı!');
+                alert('Document approved!');
             },
             onError: (error) => {
-                alert('Hata: ' + error.message);
+                alert('Error: ' + error.message);
             },
         }
     );
@@ -70,10 +70,10 @@ const DocumentPage = () => {
         PUBLISH_DOCUMENT_MUTATION,
         {
             onCompleted: () => {
-                alert('Doküman yayınlandı!');
+                alert('Document published!');
             },
             onError: (error) => {
-                alert('Hata: ' + error.message);
+                alert('Error: ' + error.message);
             },
         }
     );
@@ -82,10 +82,10 @@ const DocumentPage = () => {
         UNPUBLISH_DOCUMENT_MUTATION,
         {
             onCompleted: () => {
-                alert('Doküman yayından kaldırıldı!');
+                alert('Document unpublished!');
             },
             onError: (error) => {
-                alert('Hata: ' + error.message);
+                alert('Error: ' + error.message);
             },
         }
     );
@@ -94,11 +94,11 @@ const DocumentPage = () => {
         DELETE_DOCUMENT_MUTATION,
         {
             onCompleted: () => {
-                alert('Doküman silindi!');
+                alert('Document deleted!');
                 navigate('/documents');
             },
             onError: (error) => {
-                alert('Hata: ' + error.message);
+                alert('Error: ' + error.message);
             },
         }
     );
@@ -107,12 +107,12 @@ const DocumentPage = () => {
         UPDATE_DOCUMENT_MUTATION,
         {
             onCompleted: () => {
-                alert('Doküman güncellendi!');
+                alert('Document updated!');
                 setIsEditing(false);
                 refetch();
             },
             onError: (error) => {
-                alert('Hata: ' + error.message);
+                alert('Error: ' + error.message);
             },
         }
     );
@@ -128,14 +128,14 @@ const DocumentPage = () => {
                 <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
                     <Loader className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                        Dokümanlar Oluşturuluyor
+                        Documents Are Being Generated
                     </h2>
                     <p className="text-gray-600 mb-4">
-                        Yapay zeka tarafından özel dokümanlarınız oluşturuluyor...
+                        Your custom documents are being created by artificial intelligence...
                     </p>
                     <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
                         <p className="text-sm text-indigo-700">
-                            ⏱️ Bu işlem birkaç dakika sürebilir. Lütfen sayfayı kapatmayın.
+                            ⏱️ This process may take a few minutes. Please don't close the page.
                         </p>
                     </div>
                 </div>
@@ -155,7 +155,7 @@ const DocumentPage = () => {
                             className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700"
                         >
                             <ArrowLeft className="w-4 h-4" />
-                            Geri Dön
+                            Back
                         </button>
                     </div>
                 </header>
@@ -163,7 +163,7 @@ const DocumentPage = () => {
                     <div className="bg-white rounded-lg shadow-md p-8 text-center">
                         <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
                         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                            Doküman Bulunamadı
+                            Document Not Found
                         </h1>
                     </div>
                 </main>
@@ -172,25 +172,25 @@ const DocumentPage = () => {
     }
 
     const handleApprove = () => {
-        if (window.confirm('Bu dokümanı onaylamak istediğinizden emin misiniz?')) {
+        if (window.confirm('Are you sure you want to approve this document?')) {
             approveDocument({ variables: { documentId: id } });
         }
     };
 
     const handlePublish = () => {
-        if (window.confirm('Bu dokümanı yayınlamak istediğinizden emin misiniz?')) {
+        if (window.confirm('Are you sure you want to publish this document?')) {
             publishDocument({ variables: { documentId: id } });
         }
     };
 
     const handleUnpublish = () => {
-        if (window.confirm('Bu dokümanı yayından kaldırmak istediğinizden emin misiniz? Halk tarafından erişilemez hale gelecektir.')) {
+        if (window.confirm('Are you sure you want to unpublish this document? It will no longer be accessible to the public.')) {
             unpublishDocument({ variables: { documentId: id } });
         }
     };
 
     const handleDelete = () => {
-        if (window.confirm('Bu dokümanı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
+        if (window.confirm('Are you sure you want to delete this document? This action cannot be undone!')) {
             deleteDocumentMutation({ variables: { documentId: id } });
         }
     };
@@ -258,10 +258,10 @@ const DocumentPage = () => {
             {/* Top Navbar */}
             <nav className="bg-white border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-                    <div className="text-gray-600 text-sm">Doküman Düzenleyici</div>
+                    <div className="text-gray-600 text-sm">Document Editor</div>
                     <div className="flex items-center gap-4">
                         <div className="text-right">
-                            <p className="text-xs text-gray-500">Kullanıcı</p>
+                            <p className="text-xs text-gray-500">User</p>
                             <p className="text-sm font-semibold text-gray-900">@{user?.username}</p>
                         </div>
                         <button
@@ -270,7 +270,7 @@ const DocumentPage = () => {
                                 navigate('/login');
                             }}
                             className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                            title="Çıkış Yap"
+                            title="Sign Out"
                         >
                             <LogOut className="w-4 h-4" />
                         </button>
@@ -288,32 +288,32 @@ const DocumentPage = () => {
                                 className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-3"
                             >
                                 <ArrowLeft className="w-4 h-4" />
-                                Geri Dön
+                                Back
                             </button>
                             <h1 className="text-3xl font-bold text-gray-900">
                                 {document.appName}
                             </h1>
                             <p className="text-gray-600 mt-2">
-                                Oluşturma Tarihi: {new Date(document.createdAt).toLocaleDateString('tr-TR')}
+                                Created: {new Date(document.createdAt).toLocaleDateString('en-US')}
                             </p>
                         </div>
 
                         <div className="flex items-center gap-2">
                             {document.status === 'DRAFT' && (
                                 <span className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium">
-                                    Taslak
+                                    Draft
                                 </span>
                             )}
                             {document.status === 'APPROVED' && (
                                 <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg font-medium flex items-center gap-2">
                                     <CheckCircle className="w-4 h-4" />
-                                    Onaylı
+                                    Approved
                                 </span>
                             )}
                             {document.status === 'PUBLISHED' && (
                                 <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium flex items-center gap-2">
                                     <Globe className="w-4 h-4" />
-                                    Yayınlandı
+                                    Published
                                 </span>
                             )}
                         </div>
@@ -328,10 +328,10 @@ const DocumentPage = () => {
                     <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-6 flex items-center justify-between">
                         <div>
                             <h2 className="font-semibold text-blue-900 mb-1">
-                                Doküman Taslak Durumunda
+                                Document is in Draft Status
                             </h2>
                             <p className="text-blue-700 text-sm">
-                                Dokümanları inceledikten sonra yayınlayabilirsiniz
+                                You can publish the documents after reviewing them
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
@@ -340,17 +340,17 @@ const DocumentPage = () => {
                                 className="px-6 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition flex items-center gap-2"
                             >
                                 <Edit2 className="w-4 h-4" />
-                                Düzenle
+                                Edit
                             </button>
                             <button
                                 onClick={handlePublish}
                                 disabled={publishing}
                                 className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
                             >
-                                {publishing ? 'Yayınlanıyor...' : (
+                                {publishing ? 'Publishing...' : (
                                     <>
                                         <Globe className="w-4 h-4" />
-                                        Yayınla
+                                        Publish
                                     </>
                                 )}
                             </button>
@@ -363,11 +363,11 @@ const DocumentPage = () => {
                         <div className="flex items-center gap-2 mb-4">
                             <Globe className="w-5 h-5 text-purple-600" />
                             <h2 className="font-semibold text-purple-900">
-                                Dokümanlar Yayınlandı! 🎉
+                                Documents Published! 🎉
                             </h2>
                         </div>
                         <p className="text-purple-700 text-sm mb-4">
-                            Dokümanlarınız artık herkese açık URL'ler aracılığıyla erişilebilir:
+                            Your documents are now accessible through public URLs:
                         </p>
                         <div className="space-y-3">
                             <div className="bg-white rounded p-4 border border-purple-200">
@@ -379,7 +379,7 @@ const DocumentPage = () => {
                                     <button
                                         onClick={() => copyToClipboard(getPublicUrl('privacypolicy'), 'privacy')}
                                         className="p-2 bg-purple-100 hover:bg-purple-200 rounded transition"
-                                        title="Kopyala"
+                                        title="Copy"
                                     >
                                         {copiedUrl === 'privacy' ? (
                                             <CheckCircle className="w-4 h-4 text-green-600" />
@@ -390,7 +390,7 @@ const DocumentPage = () => {
                                     <button
                                         onClick={() => openUrl(getPublicUrl('privacypolicy'))}
                                         className="p-2 bg-purple-100 hover:bg-purple-200 rounded transition"
-                                        title="Siteyi Aç"
+                                        title="Open Site"
                                     >
                                         <ExternalLink className="w-4 h-4 text-purple-600" />
                                     </button>
@@ -405,7 +405,7 @@ const DocumentPage = () => {
                                     <button
                                         onClick={() => copyToClipboard(getPublicUrl('termsofservice'), 'terms')}
                                         className="p-2 bg-purple-100 hover:bg-purple-200 rounded transition"
-                                        title="Kopyala"
+                                        title="Copy"
                                     >
                                         {copiedUrl === 'terms' ? (
                                             <CheckCircle className="w-4 h-4 text-green-600" />
@@ -416,7 +416,7 @@ const DocumentPage = () => {
                                     <button
                                         onClick={() => openUrl(getPublicUrl('termsofservice'))}
                                         className="p-2 bg-purple-100 hover:bg-purple-200 rounded transition"
-                                        title="Siteyi Aç"
+                                        title="Open Site"
                                     >
                                         <ExternalLink className="w-4 h-4 text-purple-600" />
                                     </button>
@@ -430,7 +430,7 @@ const DocumentPage = () => {
                                 className="flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition disabled:opacity-50 font-medium"
                             >
                                 <RotateCcw className="w-4 h-4" />
-                                {unpublishing ? 'Kaldırılıyor...' : 'Yayından Kaldır'}
+                                {unpublishing ? 'Removing...' : 'Unpublish'}
                             </button>
                             <button
                                 onClick={handleDelete}
@@ -438,13 +438,13 @@ const DocumentPage = () => {
                                 className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition disabled:opacity-50 font-medium ml-auto"
                             >
                                 <Trash2 className="w-4 h-4" />
-                                {deleting ? 'Siliniyor...' : 'Sil'}
+                                {deleting ? 'Deleting...' : 'Delete'}
                             </button>
                         </div>
                     </div>
                 )}
 
-                {/* DRAFT ve Published olmayan dokümanlar için Delete butonu */}
+                {/* Delete button for DRAFT and non-published documents */}
                 {document.status === 'DRAFT' && (
                     <div className="mb-8 flex justify-end">
                         <button
@@ -453,7 +453,7 @@ const DocumentPage = () => {
                             className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition disabled:opacity-50 font-medium"
                         >
                             <Trash2 className="w-4 h-4" />
-                            {deleting ? 'Siliniyor...' : 'Dokümanı Sil'}
+                            {deleting ? 'Deleting...' : 'Delete Document'}
                         </button>
                     </div>
                 )}
@@ -490,7 +490,7 @@ const DocumentPage = () => {
                             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                         >
                             <Download className="w-4 h-4" />
-                            İndir
+                            Download
                         </button>
                     </div>
 
@@ -508,7 +508,7 @@ const DocumentPage = () => {
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-96 overflow-y-auto">
                             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-gray-900">Dokümanı Düzenle</h3>
+                                <h3 className="text-lg font-semibold text-gray-900">Edit Document</h3>
                                 <button
                                     onClick={handleEditCancel}
                                     className="text-gray-500 hover:text-gray-700"
@@ -521,7 +521,7 @@ const DocumentPage = () => {
                                 {/* App Name */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Uygulama Adı
+                                        Application Name
                                     </label>
                                     <input
                                         type="text"
@@ -536,7 +536,7 @@ const DocumentPage = () => {
                                 {/* Privacy Policy */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Gizlilik Politikası
+                                        Privacy Policy
                                     </label>
                                     <textarea
                                         value={editData.privacyPolicy}
@@ -554,7 +554,7 @@ const DocumentPage = () => {
                                 {/* Terms of Service */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Hizmet Şartları
+                                        Terms of Service
                                     </label>
                                     <textarea
                                         value={editData.termsOfService}
@@ -575,14 +575,14 @@ const DocumentPage = () => {
                                     onClick={handleEditCancel}
                                     className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition font-medium"
                                 >
-                                    İptal
+                                    Cancel
                                 </button>
                                 <button
                                     onClick={handleEditSave}
                                     className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium flex items-center gap-2"
                                 >
                                     <Check className="w-4 h-4" />
-                                    Kaydet
+                                    Save
                                 </button>
                             </div>
                         </div>

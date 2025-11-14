@@ -28,7 +28,7 @@ const CreatePage = () => {
             },
             onError: (error) => {
                 console.error('✗ Error creating document:', error);
-                setError(error.message || 'Dokümanlar oluşturulamadı');
+                setError(error.message || 'Failed to create documents');
             },
         }
     );
@@ -57,7 +57,7 @@ const CreatePage = () => {
             .every((q) => answers[q.id]);
 
         if (!allAnswered) {
-            setError('Lütfen tüm gerekli soruları cevaplayın');
+            setError('Please answer all required questions');
             return;
         }
 
@@ -68,13 +68,13 @@ const CreatePage = () => {
                 value: answers[q.id].toString(),
             }));
 
-        // İlk soru'nun cevabını appName olarak kullan
+        // Use first question answer as appName
         const firstQuestion = questions[0];
         const appNameFromAnswers = answers[firstQuestion?.id];
 
         await generateDocuments({
             variables: {
-                appName: appNameFromAnswers || 'Uygulama',
+                appName: appNameFromAnswers || 'Application',
                 answers: answerInputs,
             },
         });
@@ -93,10 +93,10 @@ const CreatePage = () => {
             {/* Top Navbar */}
             <nav className="bg-white border-b border-gray-200">
                 <div className="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
-                    <div className="text-gray-600 text-sm">Doküman Oluşturucu</div>
+                    <div className="text-gray-600 text-sm">Document Creator</div>
                     <div className="flex items-center gap-4">
                         <div className="text-right">
-                            <p className="text-xs text-gray-500">Kullanıcı</p>
+                            <p className="text-xs text-gray-500">User</p>
                             <p className="text-sm font-semibold text-gray-900">@{user?.username}</p>
                         </div>
                         <button
@@ -105,7 +105,7 @@ const CreatePage = () => {
                                 navigate('/login');
                             }}
                             className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                            title="Çıkış Yap"
+                            title="Sign Out"
                         >
                             <LogOut className="w-4 h-4" />
                         </button>
@@ -117,10 +117,10 @@ const CreatePage = () => {
             <header className="bg-white shadow">
                 <div className="max-w-3xl mx-auto px-4 py-6">
                     <h1 className="text-3xl font-bold text-gray-900">
-                        Yeni Doküman Oluştur
+                        Create New Document
                     </h1>
                     <p className="text-gray-600 mt-2">
-                        Lütfen aşağıdaki soruları cevaplayın
+                        Please answer the questions below
                     </p>
                 </div>
             </header>
@@ -157,7 +157,7 @@ const CreatePage = () => {
                                         handleAnswerChange(question.id, e.target.value)
                                     }
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    placeholder="Cevabınızı yazın..."
+                                    placeholder="Enter your answer..."
                                 />
                             )}
 
@@ -181,7 +181,7 @@ const CreatePage = () => {
                                     }
                                     rows="4"
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    placeholder="Detaylı cevabınızı yazın..."
+                                    placeholder="Enter your detailed answer..."
                                 />
                             )}
 
@@ -193,7 +193,7 @@ const CreatePage = () => {
                                     }
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                 >
-                                    <option value="">Seçiniz...</option>
+                                    <option value="">Select...</option>
                                     {question.options?.map((option) => (
                                         <option key={option} value={option}>
                                             {option}
@@ -215,7 +215,7 @@ const CreatePage = () => {
                                             }
                                             className="w-4 h-4"
                                         />
-                                        <span>Evet</span>
+                                        <span>Yes</span>
                                     </label>
                                     <label className="flex items-center gap-2">
                                         <input
@@ -228,7 +228,7 @@ const CreatePage = () => {
                                             }
                                             className="w-4 h-4"
                                         />
-                                        <span>Hayır</span>
+                                        <span>No</span>
                                     </label>
                                 </div>
                             )}
@@ -244,8 +244,8 @@ const CreatePage = () => {
                         >
                             {generating && <Loader className="w-4 h-4 animate-spin" />}
                             {generating
-                                ? 'Dokümanlar oluşturuluyor...'
-                                : 'Dokümanları Oluştur'}
+                                ? 'Generating documents...'
+                                : 'Generate Documents'}
                         </button>
                     </div>
                 </form>

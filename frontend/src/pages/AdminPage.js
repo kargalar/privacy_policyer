@@ -22,7 +22,7 @@ const AdminPage = () => {
             refetch();
         },
         onError: (error) => {
-            alert('Hata: ' + error.message);
+            alert('Error: ' + error.message);
         },
     });
 
@@ -31,7 +31,7 @@ const AdminPage = () => {
             refetch();
         },
         onError: (error) => {
-            alert('Hata: ' + error.message);
+            alert('Error: ' + error.message);
         },
     });
 
@@ -41,7 +41,7 @@ const AdminPage = () => {
     }
 
     const handleApprove = async (userId) => {
-        if (window.confirm('Bu kullanıcıyı onaylamak istediğinizden emin misiniz?')) {
+        if (window.confirm('Are you sure you want to approve this user?')) {
             await approveUser({
                 variables: { userId },
             });
@@ -49,7 +49,7 @@ const AdminPage = () => {
     };
 
     const handleReject = async (userId) => {
-        if (window.confirm('Bu kullanıcıyı reddetmek istediğinizden emin misiniz?')) {
+        if (window.confirm('Are you sure you want to reject this user?')) {
             await rejectUser({
                 variables: { userId },
             });
@@ -64,10 +64,10 @@ const AdminPage = () => {
             <header className="bg-white shadow">
                 <div className="max-w-7xl mx-auto px-4 py-6">
                     <h1 className="text-3xl font-bold text-gray-900">
-                        Admin Paneli
+                        Admin Panel
                     </h1>
                     <p className="text-gray-600 mt-2">
-                        Yeni kullanıcıları onaylayın veya reddedin
+                        Approve or reject new users
                     </p>
                 </div>
             </header>
@@ -82,10 +82,10 @@ const AdminPage = () => {
                     <div className="bg-white rounded-lg shadow-md p-8 text-center">
                         <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                            Onay Bekleyen Kullanıcı Yok
+                            No Pending Users
                         </h2>
                         <p className="text-gray-600">
-                            Tüm kullanıcılar onaylanmış veya reddetilmiştir.
+                            All users have been approved or rejected.
                         </p>
                     </div>
                 ) : (
@@ -95,16 +95,16 @@ const AdminPage = () => {
                                 <thead className="bg-gray-100">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                            Ad Soyad
+                                            Username
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                            E-posta
+                                            Email
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                            Kayıt Tarihi
+                                            Registration Date
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                            İşlemler
+                                            Actions
                                         </th>
                                     </tr>
                                 </thead>
@@ -118,7 +118,7 @@ const AdminPage = () => {
                                                 {pendingUser.email}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                {new Date(pendingUser.createdAt).toLocaleDateString('tr-TR')}
+                                                {new Date(pendingUser.createdAt).toLocaleDateString('en-US')}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
                                                 <button
@@ -126,14 +126,14 @@ const AdminPage = () => {
                                                     className="inline-flex items-center gap-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
                                                 >
                                                     <CheckCircle className="w-4 h-4" />
-                                                    Onayla
+                                                    Approve
                                                 </button>
                                                 <button
                                                     onClick={() => handleReject(pendingUser.id)}
                                                     className="inline-flex items-center gap-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
                                                 >
                                                     <XCircle className="w-4 h-4" />
-                                                    Reddet
+                                                    Reject
                                                 </button>
                                             </td>
                                         </tr>
@@ -145,8 +145,8 @@ const AdminPage = () => {
                         {/* Summary */}
                         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
                             <p className="text-sm text-gray-600">
-                                <span className="font-semibold">{pendingUsers.length}</span> kullanıcı
-                                onay bekliyordu
+                                <span className="font-semibold">{pendingUsers.length}</span> users
+                                waiting for approval
                             </p>
                         </div>
                     </div>
