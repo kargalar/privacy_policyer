@@ -33,8 +33,8 @@ const CreatePage = () => {
         }
     );
 
-    if (!isAuthenticated || user?.status !== 'APPROVED') {
-        navigate('/dashboard');
+    if (!isAuthenticated || (user?.status !== 'APPROVED' && user?.status !== 'ADMIN')) {
+        navigate('/documents');
         return null;
     }
 

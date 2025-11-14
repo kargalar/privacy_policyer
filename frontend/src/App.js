@@ -8,7 +8,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 // Pages
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
 import CreatePage from './pages/CreatePage';
 import DocumentsPage from './pages/DocumentsPage';
 import DocumentPage from './pages/DocumentPage';
@@ -28,15 +27,6 @@ function App() {
                         <Route path="/register" element={<RegisterPage />} />
 
                         {/* Protected Routes */}
-                        <Route
-                            path="/dashboard"
-                            element={
-                                <ProtectedRoute>
-                                    <DashboardPage />
-                                </ProtectedRoute>
-                            }
-                        />
-
                         <Route
                             path="/create"
                             element={
@@ -83,8 +73,8 @@ function App() {
                         />
 
                         {/* Default Route */}
-                        <Route path="/" element={<Navigate to="/dashboard" />} />
-                        <Route path="*" element={<Navigate to="/dashboard" />} />
+                        <Route path="/" element={<Navigate to="/documents" />} />
+                        <Route path="*" element={<Navigate to="/documents" />} />
                     </Routes>
                 </Router>
             </AuthProvider>

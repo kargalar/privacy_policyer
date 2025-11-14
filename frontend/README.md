@@ -35,7 +35,6 @@ Uygulama `http://localhost:3000` adresinde açılacak.
 - `/register` - Kayıt Sayfası
 
 ### Kullanıcı Sayfaları
-- `/dashboard` - Dashboard
 - `/create` - Yeni Doküman Oluştur
 - `/documents` - Dokümanlarım
 - `/documents/:id` - Doküman Detayları

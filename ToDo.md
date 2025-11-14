@@ -8,3 +8,5 @@ dökümanalr düzenlenebielcek
 mail adresini uyuglama adını flaan her zmana doldurmuyor rpomtu güncelle
 
 promt daihl her şey inilizce yap
+
+üstteki 2. headeri kaldır

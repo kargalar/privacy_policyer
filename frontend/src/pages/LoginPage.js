@@ -16,7 +16,7 @@ const LoginPage = () => {
         onCompleted: (data) => {
             const { token, user } = data.login;
             login(user, token);
-            navigate('/dashboard');
+            navigate('/documents');
         },
         onError: (error) => {
             setError(error.message || 'Giriş başarısız oldu');
