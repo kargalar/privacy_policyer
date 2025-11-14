@@ -11,10 +11,8 @@ export const resolvers = {
             return {
                 id: userData.id,
                 email: userData.email,
-                username: userData.username,
-                fullName: userData.full_name,
+                username: userData.username || userData.email.split('@')[0],
                 status: userData.status,
-                isAdmin: userData.is_admin,
                 createdAt: new Date().toISOString(),
             };
         },
@@ -62,15 +60,13 @@ export const resolvers = {
     },
 
     Mutation: {
-        register: async (_, { email, password, fullName, username }) => {
-            const user = await userService.registerUser(email, password, fullName, username);
+        register: async (_, { email, password, username }) => {
+            const user = await userService.registerUser(email, password, username);
             return {
                 id: user.id,
                 email: user.email,
                 username: user.username,
-                fullName: user.full_name,
                 status: user.status,
-                isAdmin: user.is_admin,
                 createdAt: user.created_at,
             };
         },
@@ -82,9 +78,8 @@ export const resolvers = {
                 user: {
                     id: user.id,
                     email: user.email,
-                    fullName: user.fullName,
+                    username: user.username,
                     status: user.status,
-                    isAdmin: user.isAdmin,
                     createdAt: new Date().toISOString(),
                 },
             };
@@ -197,15 +192,46 @@ export const resolvers = {
             return await documentService.deleteDocument(documentId);
         },
 
+        updateDocument: async (_, { documentId, appName, privacyPolicy, termsOfService }, context) => {
+            const user = requireAuth(context);
+            const doc = await documentService.getDocumentById(documentId);
+
+            if (!doc || doc.userId !== user.id) {
+                throw new Error('Document not found or access denied');
+            }
+
+            // DRAFT durumunda doküman düzenlenebilir
+            if (doc.status !== 'DRAFT') {
+                throw new Error('Only DRAFT documents can be edited');
+            }
+
+            const updated = await documentService.updateDocument(
+                documentId,
+                appName,
+                privacyPolicy,
+                termsOfService
+            );
+
+            return {
+                id: updated.id,
+                userId: updated.user_id,
+                appName: updated.app_name,
+                privacyPolicy: updated.privacy_policy,
+                termsOfService: updated.terms_of_service,
+                status: updated.status,
+                createdAt: updated.created_at,
+                updatedAt: updated.updated_at,
+            };
+        },
+
         approveUser: async (_, { userId }, context) => {
             requireAdmin(context);
             const user = await userService.approveUser(userId);
             return {
                 id: user.id,
                 email: user.email,
-                fullName: user.full_name,
+                username: user.username || user.email.split('@')[0],
                 status: user.status,
-                isAdmin: false,
                 createdAt: new Date().toISOString(),
             };
         },
@@ -216,9 +242,8 @@ export const resolvers = {
             return {
                 id: user.id,
                 email: user.email,
-                fullName: user.full_name,
+                username: user.username || user.email.split('@')[0],
                 status: user.status,
-                isAdmin: false,
                 createdAt: new Date().toISOString(),
             };
         },

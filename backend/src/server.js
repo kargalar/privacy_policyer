@@ -24,10 +24,8 @@ const initDatabase = async () => {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        full_name VARCHAR(255),
         username VARCHAR(100) UNIQUE,
         status VARCHAR(50) DEFAULT 'PENDING',
-        is_admin BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -88,8 +86,8 @@ const initDatabase = async () => {
 
     // Admin kullanıcısı oluştur
     await pool.query(`
-      INSERT INTO users (email, password, full_name, status, is_admin, updated_at)
-      VALUES ('admin@privacypolicy.com', '$2a$10$qZxZ.9Z9X8Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z', 'Admin', 'APPROVED', TRUE, NOW())
+      INSERT INTO users (email, password, username, status, updated_at)
+      VALUES ('admin@privacypolicy.com', '$2a$10$qZxZ.9Z9X8Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z', 'admin', 'ADMIN', NOW())
       ON CONFLICT (email) DO NOTHING;
     `);
     console.log('✓ Admin user created');
@@ -121,6 +119,11 @@ app.get('/public/:username/:appName/privacypolicy', async (req, res) => {
     // App name'i normalize et (boşlukları kaldır)
     const normalizedAppName = appName.replace(/-/g, ' ');
 
+    console.log('🔍 Privacy Policy Request:');
+    console.log('  Username:', username);
+    console.log('  AppName (URL):', appName);
+    console.log('  AppName (normalized):', normalizedAppName);
+
     const result = await pool.query(
       `SELECT d.privacy_policy, u.username, d.app_name
        FROM documents d
@@ -130,7 +133,9 @@ app.get('/public/:username/:appName/privacypolicy', async (req, res) => {
       [username, normalizedAppName]
     );
 
+    console.log('  Found:', result.rows.length);
     if (result.rows.length === 0) {
+      console.log('  ERROR: Document not found');
       return res.status(404).json({ error: 'Document not found' });
     }
 

@@ -6,13 +6,13 @@ import {
     GENERATE_DOCUMENTS_MUTATION,
 } from '../graphql/queries';
 import { useAuth } from '../context/AuthContext';
-import { AlertCircle, Loader } from 'lucide-react';
+import { AlertCircle, Loader, LogOut } from 'lucide-react';
 
 const CreatePage = () => {
     const [answers, setAnswers] = useState({});
     const [error, setError] = useState('');
     const navigate = useNavigate();
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated, user, logout } = useAuth();
 
     const { data: questionsData, loading: questionsLoading } = useQuery(
         GET_QUESTIONS_QUERY
@@ -90,6 +90,29 @@ const CreatePage = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            {/* Top Navbar */}
+            <nav className="bg-white border-b border-gray-200">
+                <div className="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
+                    <div className="text-gray-600 text-sm">Doküman Oluşturucu</div>
+                    <div className="flex items-center gap-4">
+                        <div className="text-right">
+                            <p className="text-xs text-gray-500">Kullanıcı</p>
+                            <p className="text-sm font-semibold text-gray-900">@{user?.username}</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                logout();
+                                navigate('/login');
+                            }}
+                            className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Çıkış Yap"
+                        >
+                            <LogOut className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
             {/* Header */}
             <header className="bg-white shadow">
                 <div className="max-w-3xl mx-auto px-4 py-6">

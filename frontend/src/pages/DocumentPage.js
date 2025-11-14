@@ -7,6 +7,7 @@ import {
     PUBLISH_DOCUMENT_MUTATION,
     UNPUBLISH_DOCUMENT_MUTATION,
     DELETE_DOCUMENT_MUTATION,
+    UPDATE_DOCUMENT_MUTATION,
 } from '../graphql/queries';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -20,14 +21,24 @@ import {
     ExternalLink,
     Trash2,
     RotateCcw,
+    Edit2,
+    X,
+    Check,
+    LogOut,
 } from 'lucide-react';
 
 const DocumentPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated, user, logout } = useAuth();
     const [activeTab, setActiveTab] = useState('privacy');
     const [copiedUrl, setCopiedUrl] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({
+        appName: '',
+        privacyPolicy: '',
+        termsOfService: '',
+    });
 
     const { data: documentData, loading, refetch, stopPolling } = useQuery(GET_DOCUMENT_QUERY, {
         variables: { id },
@@ -85,6 +96,20 @@ const DocumentPage = () => {
             onCompleted: () => {
                 alert('Doküman silindi!');
                 navigate('/documents');
+            },
+            onError: (error) => {
+                alert('Hata: ' + error.message);
+            },
+        }
+    );
+
+    const [updateDocumentMutation, { loading: updating }] = useMutation(
+        UPDATE_DOCUMENT_MUTATION,
+        {
+            onCompleted: () => {
+                alert('Doküman güncellendi!');
+                setIsEditing(false);
+                refetch();
             },
             onError: (error) => {
                 alert('Hata: ' + error.message);
@@ -170,6 +195,34 @@ const DocumentPage = () => {
         }
     };
 
+    const handleEditStart = () => {
+        setEditData({
+            appName: document.appName,
+            privacyPolicy: document.privacyPolicy,
+            termsOfService: document.termsOfService,
+        });
+        setIsEditing(true);
+    };
+
+    const handleEditSave = () => {
+        if (!editData.appName.trim() || !editData.privacyPolicy.trim() || !editData.termsOfService.trim()) {
+            alert('Lütfen tüm alanları doldurun');
+            return;
+        }
+        updateDocumentMutation({
+            variables: {
+                documentId: id,
+                appName: editData.appName,
+                privacyPolicy: editData.privacyPolicy,
+                termsOfService: editData.termsOfService,
+            },
+        });
+    };
+
+    const handleEditCancel = () => {
+        setIsEditing(false);
+    };
+
     const normalizeAppName = (name) => {
         return name.trim().replace(/\s+/g, '-').toLowerCase();
     };
@@ -202,6 +255,29 @@ const DocumentPage = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            {/* Top Navbar */}
+            <nav className="bg-white border-b border-gray-200">
+                <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+                    <div className="text-gray-600 text-sm">Doküman Düzenleyici</div>
+                    <div className="flex items-center gap-4">
+                        <div className="text-right">
+                            <p className="text-xs text-gray-500">Kullanıcı</p>
+                            <p className="text-sm font-semibold text-gray-900">@{user?.username}</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                logout();
+                                navigate('/login');
+                            }}
+                            className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Çıkış Yap"
+                        >
+                            <LogOut className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
             {/* Header */}
             <header className="bg-white shadow">
                 <div className="max-w-7xl mx-auto px-4 py-6">
@@ -258,18 +334,27 @@ const DocumentPage = () => {
                                 Dokümanları inceledikten sonra yayınlayabilirsiniz
                             </p>
                         </div>
-                        <button
-                            onClick={handlePublish}
-                            disabled={publishing}
-                            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
-                        >
-                            {publishing ? 'Yayınlanıyor...' : (
-                                <>
-                                    <Globe className="w-4 h-4" />
-                                    Yayınla
-                                </>
-                            )}
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleEditStart}
+                                className="px-6 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition flex items-center gap-2"
+                            >
+                                <Edit2 className="w-4 h-4" />
+                                Düzenle
+                            </button>
+                            <button
+                                onClick={handlePublish}
+                                disabled={publishing}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {publishing ? 'Yayınlanıyor...' : (
+                                    <>
+                                        <Globe className="w-4 h-4" />
+                                        Yayınla
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -417,6 +502,92 @@ const DocumentPage = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Edit Modal */}
+                {isEditing && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-96 overflow-y-auto">
+                            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-gray-900">Dokümanı Düzenle</h3>
+                                <button
+                                    onClick={handleEditCancel}
+                                    className="text-gray-500 hover:text-gray-700"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="px-6 py-4 space-y-4">
+                                {/* App Name */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Uygulama Adı
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editData.appName}
+                                        onChange={(e) =>
+                                            setEditData({ ...editData, appName: e.target.value })
+                                        }
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                                    />
+                                </div>
+
+                                {/* Privacy Policy */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Gizlilik Politikası
+                                    </label>
+                                    <textarea
+                                        value={editData.privacyPolicy}
+                                        onChange={(e) =>
+                                            setEditData({
+                                                ...editData,
+                                                privacyPolicy: e.target.value,
+                                            })
+                                        }
+                                        rows="6"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none font-mono text-sm"
+                                    />
+                                </div>
+
+                                {/* Terms of Service */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Hizmet Şartları
+                                    </label>
+                                    <textarea
+                                        value={editData.termsOfService}
+                                        onChange={(e) =>
+                                            setEditData({
+                                                ...editData,
+                                                termsOfService: e.target.value,
+                                            })
+                                        }
+                                        rows="6"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none font-mono text-sm"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end gap-3">
+                                <button
+                                    onClick={handleEditCancel}
+                                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition font-medium"
+                                >
+                                    İptal
+                                </button>
+                                <button
+                                    onClick={handleEditSave}
+                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium flex items-center gap-2"
+                                >
+                                    <Check className="w-4 h-4" />
+                                    Kaydet
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );

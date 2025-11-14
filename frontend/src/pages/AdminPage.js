@@ -112,7 +112,7 @@ const AdminPage = () => {
                                     {pendingUsers.map((pendingUser) => (
                                         <tr key={pendingUser.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                {pendingUser.fullName}
+                                                @{pendingUser.username}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                                 {pendingUser.email}

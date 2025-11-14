@@ -184,6 +184,26 @@ export const unpublishDocument = async (documentId) => {
     }
 };
 
+export const updateDocument = async (documentId, appName, privacyPolicy, termsOfService) => {
+    try {
+        const result = await pool.query(
+            `UPDATE documents 
+       SET app_name = $1, privacy_policy = $2, terms_of_service = $3, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $4 
+       RETURNING id, user_id, app_name, privacy_policy, terms_of_service, status, created_at, updated_at`,
+            [appName, privacyPolicy, termsOfService, documentId]
+        );
+
+        if (result.rows.length === 0) {
+            throw new Error('Document not found');
+        }
+
+        return result.rows[0];
+    } catch (error) {
+        throw error;
+    }
+};
+
 export const deleteDocument = async (documentId) => {
     try {
         const result = await pool.query(

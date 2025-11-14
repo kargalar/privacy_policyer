@@ -8,8 +8,6 @@ const RegisterPage = () => {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
-        confirmPassword: '',
-        fullName: '',
         username: '',
     });
     const [error, setError] = useState('');
@@ -41,13 +39,8 @@ const RegisterPage = () => {
         setError('');
 
         // Validations
-        if (!formData.email || !formData.password || !formData.fullName) {
+        if (!formData.email || !formData.password || !formData.username) {
             setError('Lütfen tüm alanları doldurun');
-            return;
-        }
-
-        if (formData.password !== formData.confirmPassword) {
-            setError('Şifreler eşleşmiyor');
             return;
         }
 
@@ -60,8 +53,7 @@ const RegisterPage = () => {
             variables: {
                 email: formData.email,
                 password: formData.password,
-                fullName: formData.fullName,
-                username: formData.username || null,
+                username: formData.username,
             },
         });
     };
@@ -109,21 +101,7 @@ const RegisterPage = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Adınız Soyadınız
-                        </label>
-                        <input
-                            type="text"
-                            name="fullName"
-                            value={formData.fullName}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            placeholder="John Doe"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Kullanıcı Adı (Opsiyonel)
+                            Kullanıcı Adı
                         </label>
                         <input
                             type="text"
@@ -160,20 +138,6 @@ const RegisterPage = () => {
                             type="password"
                             name="password"
                             value={formData.password}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            placeholder="••••••••"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Şifre (Tekrar)
-                        </label>
-                        <input
-                            type="password"
-                            name="confirmPassword"
-                            value={formData.confirmPassword}
                             onChange={handleChange}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             placeholder="••••••••"

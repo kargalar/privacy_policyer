@@ -8,11 +8,13 @@ import {
     Loader,
     ArrowRight,
     Plus,
+    LogOut,
+    CheckCircle,
 } from 'lucide-react';
 
 const DocumentsPage = () => {
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user, logout } = useAuth();
 
     const { data: documentsData, loading } = useQuery(GET_MY_DOCUMENTS_QUERY, {
         skip: !isAuthenticated,
@@ -60,22 +62,51 @@ const DocumentsPage = () => {
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
             <header className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900">
-                            Dokümanlarım
-                        </h1>
-                        <p className="text-gray-600 mt-2">
-                            Oluşturduğunuz tüm belgeler
-                        </p>
+                <div className="max-w-7xl mx-auto px-4 py-6">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">
+                                Dokümanlarım
+                            </h1>
+                            <p className="text-gray-600 mt-2">
+                                Oluşturduğunuz tüm belgeler
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="text-right">
+                                <p className="text-sm text-gray-600">Hoş geldiniz</p>
+                                <p className="text-lg font-semibold text-gray-900">@{user?.username}</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    logout();
+                                    navigate('/login');
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                title="Çıkış Yap"
+                            >
+                                <LogOut className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
-                    <button
-                        onClick={() => navigate('/create')}
-                        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Yeni Doküman
-                    </button>
+                    <div className="flex justify-end gap-3">
+                        {user?.status === 'ADMIN' && (
+                            <button
+                                onClick={() => navigate('/approvals')}
+                                className="flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+                            >
+                                <CheckCircle className="w-5 h-5" />
+                                Onay Bekleyen
+                            </button>
+                        )}
+                        <button
+                            onClick={() => navigate('/create')}
+                            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Yeni Doküman
+                        </button>
+                    </div>
                 </div>
             </header>
 

@@ -13,6 +13,7 @@ import CreatePage from './pages/CreatePage';
 import DocumentsPage from './pages/DocumentsPage';
 import DocumentPage from './pages/DocumentPage';
 import AdminPage from './pages/AdminPage';
+import ApprovalPage from './pages/ApprovalPage';
 
 import './App.css';
 
@@ -68,6 +69,15 @@ function App() {
                             element={
                                 <ProtectedRoute requireAdmin={true}>
                                     <AdminPage />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        <Route
+                            path="/approvals"
+                            element={
+                                <ProtectedRoute requireAdmin={true}>
+                                    <ApprovalPage />
                                 </ProtectedRoute>
                             }
                         />

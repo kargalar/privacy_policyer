@@ -7,20 +7,19 @@ export const LOGIN_MUTATION = gql`
       user {
         id
         email
-        fullName
+        username
         status
-        isAdmin
       }
     }
   }
 `;
 
 export const REGISTER_MUTATION = gql`
-  mutation Register($email: String!, $password: String!, $fullName: String!) {
-    register(email: $email, password: $password, fullName: $fullName) {
+  mutation Register($email: String!, $password: String!, $username: String!) {
+    register(email: $email, password: $password, username: $username) {
       id
       email
-      fullName
+      username
       status
     }
   }
@@ -32,8 +31,6 @@ export const GET_ME_QUERY = gql`
       id
       email
       username
-      fullName
-      isAdmin
       status
     }
   }
@@ -106,6 +103,18 @@ export const APPROVE_DOCUMENT_MUTATION = gql`
   }
 `;
 
+export const UPDATE_DOCUMENT_MUTATION = gql`
+  mutation UpdateDocument($documentId: ID!, $appName: String!, $privacyPolicy: String!, $termsOfService: String!) {
+    updateDocument(documentId: $documentId, appName: $appName, privacyPolicy: $privacyPolicy, termsOfService: $termsOfService) {
+      id
+      appName
+      privacyPolicy
+      termsOfService
+      status
+    }
+  }
+`;
+
 export const PUBLISH_DOCUMENT_MUTATION = gql`
   mutation PublishDocument($documentId: ID!) {
     publishDocument(documentId: $documentId) {
@@ -135,7 +144,7 @@ export const PENDING_USERS_QUERY = gql`
     pendingUsers {
       id
       email
-      fullName
+      username
       createdAt
     }
   }

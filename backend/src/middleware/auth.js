@@ -43,7 +43,7 @@ export const requireAuth = (context) => {
 
 export const requireAdmin = (context) => {
     const user = requireAuth(context);
-    if (!user.isAdmin) {
+    if (user.status !== 'ADMIN') {
         throw new Error('Admin access required');
     }
     return user;

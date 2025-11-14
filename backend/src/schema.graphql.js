@@ -3,6 +3,7 @@ export const typeDefs = `#graphql
     PENDING
     APPROVED
     REJECTED
+    ADMIN
   }
 
   enum DocumentStatus {
@@ -22,10 +23,8 @@ export const typeDefs = `#graphql
   type User {
     id: ID!
     email: String!
-    username: String
-    fullName: String
+    username: String!
     status: UserStatus!
-    isAdmin: Boolean!
     createdAt: String!
   }
 
@@ -79,7 +78,7 @@ export const typeDefs = `#graphql
 
   type Mutation {
     # Auth
-    register(email: String!, password: String!, fullName: String!, username: String): User!
+    register(email: String!, password: String!, username: String!): User!
     login(email: String!, password: String!): AuthPayload!
     
     # Questions
@@ -88,6 +87,7 @@ export const typeDefs = `#graphql
     # Documents
     generateDocuments(appName: String!, answers: [AnswerInput!]!): Document!
     approveDocument(documentId: ID!): Document!
+    updateDocument(documentId: ID!, appName: String!, privacyPolicy: String!, termsOfService: String!): Document!
     publishDocument(documentId: ID!): Document!
     unpublishDocument(documentId: ID!): Document!
     deleteDocument(documentId: ID!): Boolean!

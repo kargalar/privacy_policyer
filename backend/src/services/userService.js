@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import pool from '../utils/database.js';
 import { v4 as uuidv4 } from 'uuid';
 
-export const registerUser = async (email, password, fullName, username) => {
+export const registerUser = async (email, password, username) => {
     try {
         // Email zaten mevcut mu kontrolü
         const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -13,11 +13,9 @@ export const registerUser = async (email, password, fullName, username) => {
         }
 
         // Username zaten mevcut mu kontrolü
-        if (username) {
-            const existingUsername = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
-            if (existingUsername.rows.length > 0) {
-                throw new Error('Username already taken');
-            }
+        const existingUsername = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
+        if (existingUsername.rows.length > 0) {
+            throw new Error('Username already taken');
         }
 
         // Password hash'le
@@ -25,10 +23,10 @@ export const registerUser = async (email, password, fullName, username) => {
 
         // Kullanıcıyı ekle
         const result = await pool.query(
-            `INSERT INTO users (id, email, password, full_name, username, status, is_admin, updated_at) 
-       VALUES ($1, $2, $3, $4, $5, 'PENDING', FALSE, NOW()) 
-       RETURNING id, email, full_name, username, status, is_admin, created_at`,
-            [uuidv4(), email, hashedPassword, fullName, username || email.split('@')[0]]
+            `INSERT INTO users (id, email, password, username, status, updated_at) 
+       VALUES ($1, $2, $3, $4, 'PENDING', NOW()) 
+       RETURNING id, email, username, status, created_at`,
+            [uuidv4(), email, hashedPassword, username]
         );
 
         return result.rows[0];
@@ -47,8 +45,8 @@ export const loginUser = async (email, password) => {
 
         const user = result.rows[0];
 
-        // Eğer kullanıcı onaylanmamışsa giriş yapamaz
-        if (user.status !== 'APPROVED') {
+        // Eğer kullanıcı onaylanmamışsa giriş yapamaz (APPROVED veya ADMIN)
+        if (user.status !== 'APPROVED' && user.status !== 'ADMIN') {
             throw new Error('Your account is pending approval by an administrator');
         }
 
@@ -63,7 +61,7 @@ export const loginUser = async (email, password) => {
             {
                 id: user.id,
                 email: user.email,
-                isAdmin: user.is_admin,
+                status: user.status,
             },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
@@ -74,8 +72,7 @@ export const loginUser = async (email, password) => {
             user: {
                 id: user.id,
                 email: user.email,
-                fullName: user.full_name,
-                isAdmin: user.is_admin,
+                username: user.username || user.email.split('@')[0],
                 status: user.status,
             },
         };
@@ -87,7 +84,7 @@ export const loginUser = async (email, password) => {
 export const getPendingUsers = async () => {
     try {
         const result = await pool.query(
-            `SELECT id, email, full_name, status, created_at 
+            `SELECT id, email, username, status, created_at 
        FROM users 
        WHERE status = 'PENDING' 
        ORDER BY created_at DESC`
@@ -104,7 +101,7 @@ export const approveUser = async (userId) => {
             `UPDATE users 
        SET status = 'APPROVED', updated_at = CURRENT_TIMESTAMP 
        WHERE id = $1 
-       RETURNING id, email, full_name, status`,
+       RETURNING id, email, username, status`,
             [userId]
         );
 
@@ -124,7 +121,7 @@ export const rejectUser = async (userId) => {
             `UPDATE users 
        SET status = 'REJECTED', updated_at = CURRENT_TIMESTAMP 
        WHERE id = $1 
-       RETURNING id, email, full_name, status`,
+       RETURNING id, email, username, status`,
             [userId]
         );
 
@@ -141,7 +138,7 @@ export const rejectUser = async (userId) => {
 export const getUserById = async (userId) => {
     try {
         const result = await pool.query(
-            `SELECT id, email, full_name, username, status, is_admin 
+            `SELECT id, email, username, status 
        FROM users 
        WHERE id = $1`,
             [userId]
@@ -160,7 +157,7 @@ export const getUserById = async (userId) => {
 export const getAllUsers = async () => {
     try {
         const result = await pool.query(
-            `SELECT id, email, full_name, status, is_admin, created_at 
+            `SELECT id, email, username, status, created_at 
        FROM users 
        ORDER BY created_at DESC`
         );
