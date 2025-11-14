@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import { ApolloServer } from 'apollo-server-express';
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@apollo/server/express4';
+import bodyParser from 'body-parser';
 import { typeDefs } from './schema.graphql.js';
 import { resolvers } from './resolvers/index.js';
 import dotenv from 'dotenv';
@@ -15,7 +17,7 @@ app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
 }));
-app.use(express.json());
+app.use(bodyParser.json());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -26,7 +28,6 @@ app.get('/health', (req, res) => {
 const server = new ApolloServer({
     typeDefs,
     resolvers,
-    context: ({ req }) => ({ req }),
     introspection: true,
     includeStacktraceInErrorResponses: process.env.NODE_ENV !== 'production',
 });
@@ -35,7 +36,13 @@ const server = new ApolloServer({
 const startServer = async () => {
     try {
         await server.start();
-        server.applyMiddleware({ app });
+
+        app.use(
+            '/graphql',
+            expressMiddleware(server, {
+                context: async ({ req }) => ({ req }),
+            })
+        );
 
         app.listen(PORT, () => {
             console.log(`🚀 Server running at http://localhost:${PORT}/graphql`);

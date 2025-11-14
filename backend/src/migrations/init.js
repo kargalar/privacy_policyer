@@ -1,11 +1,11 @@
 import pool from '../utils/database.js';
 
 const initDatabase = async () => {
-    try {
-        console.log('Initializing database...');
+  try {
+    console.log('Initializing database...');
 
-        // Users tablosu
-        await pool.query(`
+    // Users tablosu
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -17,10 +17,10 @@ const initDatabase = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-        console.log('✓ Users table created');
+    console.log('✓ Users table created');
 
-        // Questions tablosu
-        await pool.query(`
+    // Questions tablosu
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS questions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         question TEXT NOT NULL,
@@ -33,10 +33,10 @@ const initDatabase = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-        console.log('✓ Questions table created');
+    console.log('✓ Questions table created');
 
-        // Answers tablosu
-        await pool.query(`
+    // Answers tablosu
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS answers (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -47,10 +47,10 @@ const initDatabase = async () => {
         UNIQUE(user_id, question_id)
       );
     `);
-        console.log('✓ Answers table created');
+    console.log('✓ Answers table created');
 
-        // Documents tablosu
-        await pool.query(`
+    // Documents tablosu
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS documents (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -62,22 +62,22 @@ const initDatabase = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-        console.log('✓ Documents table created');
+    console.log('✓ Documents table created');
 
-        // Admin kullanıcısı oluştur
-        await pool.query(`
+    // Admin kullanıcısı oluştur
+    await pool.query(`
       INSERT INTO users (email, password, full_name, status, is_admin)
       VALUES ('admin@privacypolicy.com', '$2a$10$qZxZ.9Z9X8Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z', 'Admin', 'APPROVED', TRUE)
       ON CONFLICT (email) DO NOTHING;
     `);
-        console.log('✓ Admin user created');
+    console.log('✓ Admin user created');
 
-        console.log('Database initialization completed successfully!');
-        process.exit(0);
-    } catch (error) {
-        console.error('Database initialization error:', error);
-        process.exit(1);
-    }
+    console.log('Database initialization completed successfully!');
+    process.exit(0);
+  } catch (error) {
+    console.error('Database initialization error:', error);
+    process.exit(1);
+  }
 };
 
 initDatabase();
