@@ -13,7 +13,7 @@ export const resolvers = {
                 email: userData.email,
                 username: userData.username || userData.email.split('@')[0],
                 status: userData.status,
-                createdAt: new Date().toISOString(),
+                createdAt: userData.created_at ? new Date(userData.created_at).toISOString() : new Date().toISOString(),
             };
         },
 
@@ -50,12 +50,26 @@ export const resolvers = {
 
         pendingUsers: async (_, __, context) => {
             requireAdmin(context);
-            return await userService.getPendingUsers();
+            const users = await userService.getPendingUsers();
+            return users.map(user => ({
+                id: user.id,
+                email: user.email,
+                username: user.username || user.email.split('@')[0],
+                status: user.status,
+                createdAt: user.created_at ? new Date(user.created_at).toISOString() : new Date().toISOString(),
+            }));
         },
 
         allUsers: async (_, __, context) => {
             requireAdmin(context);
-            return await userService.getAllUsers();
+            const users = await userService.getAllUsers();
+            return users.map(user => ({
+                id: user.id,
+                email: user.email,
+                username: user.username || user.email.split('@')[0],
+                status: user.status,
+                createdAt: user.created_at ? new Date(user.created_at).toISOString() : new Date().toISOString(),
+            }));
         },
 
         publicDocument: async (_, { username, appName }) => {
@@ -233,24 +247,26 @@ export const resolvers = {
         approveUser: async (_, { userId }, context) => {
             requireAdmin(context);
             const user = await userService.approveUser(userId);
+            const userData = await userService.getUserById(userId);
             return {
                 id: user.id,
                 email: user.email,
                 username: user.username || user.email.split('@')[0],
                 status: user.status,
-                createdAt: new Date().toISOString(),
+                createdAt: userData?.created_at ? new Date(userData.created_at).toISOString() : new Date().toISOString(),
             };
         },
 
         rejectUser: async (_, { userId }, context) => {
             requireAdmin(context);
             const user = await userService.rejectUser(userId);
+            const userData = await userService.getUserById(userId);
             return {
                 id: user.id,
                 email: user.email,
                 username: user.username || user.email.split('@')[0],
                 status: user.status,
-                createdAt: new Date().toISOString(),
+                createdAt: userData?.created_at ? new Date(userData.created_at).toISOString() : new Date().toISOString(),
             };
         },
     },

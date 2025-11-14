@@ -138,7 +138,7 @@ export const rejectUser = async (userId) => {
 export const getUserById = async (userId) => {
     try {
         const result = await pool.query(
-            `SELECT id, email, username, status 
+            `SELECT id, email, username, status, created_at 
        FROM users 
        WHERE id = $1`,
             [userId]
