@@ -9,8 +9,11 @@ export const resolvers = {
             const user = requireAuth(context);
             const userData = await userService.getUserById(user.id);
             return {
-                ...userData,
+                id: userData.id,
+                email: userData.email,
+                username: userData.username,
                 fullName: userData.full_name,
+                status: userData.status,
                 isAdmin: userData.is_admin,
                 createdAt: new Date().toISOString(),
             };
@@ -59,11 +62,12 @@ export const resolvers = {
     },
 
     Mutation: {
-        register: async (_, { email, password, fullName }) => {
-            const user = await userService.registerUser(email, password, fullName);
+        register: async (_, { email, password, fullName, username }) => {
+            const user = await userService.registerUser(email, password, fullName, username);
             return {
                 id: user.id,
                 email: user.email,
+                username: user.username,
                 fullName: user.full_name,
                 status: user.status,
                 isAdmin: user.is_admin,
@@ -99,10 +103,11 @@ export const resolvers = {
             await questionService.submitAnswers(user.id, answers);
 
             // Cevaplardan app data oluştur
-            const appData = {};
+            const appData = { appName }; // appName'i ekle
+            const questions = await questionService.getQuestions();
+
             for (const answer of answers) {
                 // Answer'ın question'ını bul
-                const questions = await questionService.getQuestions();
                 const question = questions.find((q) => q.id === answer.questionId);
 
                 if (question) {
@@ -112,6 +117,8 @@ export const resolvers = {
                     appData[key] = answer.value;
                 }
             }
+
+            console.log('Generated appData:', appData);
 
             // Dokümanları oluştur
             const document = await documentService.createDocument(user.id, appName, appData);
@@ -143,11 +150,39 @@ export const resolvers = {
                 throw new Error('Document not found or access denied');
             }
 
+            // DRAFT veya APPROVED durumundaki dokümanı PUBLISHED yap
             const updated = await documentService.publishDocument(documentId);
             return {
-                ...updated,
+                id: updated.id,
                 userId: updated.user_id,
                 appName: updated.app_name,
+                privacyPolicy: updated.privacy_policy,
+                termsOfService: updated.terms_of_service,
+                status: updated.status,
+                createdAt: updated.created_at,
+                updatedAt: updated.updated_at,
+            };
+        },
+
+        unpublishDocument: async (_, { documentId }, context) => {
+            const user = requireAuth(context);
+            const doc = await documentService.getDocumentById(documentId);
+
+            if (!doc || doc.userId !== user.id) {
+                throw new Error('Document not found or access denied');
+            }
+
+            // PUBLISHED durumundaki dokümanı DRAFT'a döndür
+            const updated = await documentService.unpublishDocument(documentId);
+            return {
+                id: updated.id,
+                userId: updated.user_id,
+                appName: updated.app_name,
+                privacyPolicy: updated.privacy_policy,
+                termsOfService: updated.terms_of_service,
+                status: updated.status,
+                createdAt: updated.created_at,
+                updatedAt: updated.updated_at,
             };
         },
 

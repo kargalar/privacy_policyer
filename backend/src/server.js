@@ -25,12 +25,20 @@ const initDatabase = async () => {
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         full_name VARCHAR(255),
+        username VARCHAR(100) UNIQUE,
         status VARCHAR(50) DEFAULT 'PENDING',
         is_admin BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Username column ekle (eğer yoksa)
+    await pool.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS username VARCHAR(100) UNIQUE;
+    `);
+
     console.log('✓ Users table created');
 
     // Questions tablosu
@@ -105,12 +113,79 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Public Privacy Policy endpoint
+app.get('/public/:username/:appName/privacypolicy', async (req, res) => {
+  try {
+    const { username, appName } = req.params;
+
+    // App name'i normalize et (boşlukları kaldır)
+    const normalizedAppName = appName.replace(/-/g, ' ');
+
+    const result = await pool.query(
+      `SELECT d.privacy_policy, u.username, d.app_name
+       FROM documents d
+       JOIN users u ON d.user_id = u.id
+       WHERE u.username = $1 AND LOWER(TRIM(d.app_name)) = LOWER(TRIM($2)) AND d.status = 'PUBLISHED'
+       LIMIT 1`,
+      [username, normalizedAppName]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    const { privacy_policy } = result.rows[0];
+    res.type('text/plain').send(privacy_policy);
+  } catch (error) {
+    console.error('Error fetching privacy policy:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Public Terms of Service endpoint
+app.get('/public/:username/:appName/termsofservice', async (req, res) => {
+  try {
+    const { username, appName } = req.params;
+
+    // App name'i normalize et (boşlukları kaldır)
+    const normalizedAppName = appName.replace(/-/g, ' ');
+
+    const result = await pool.query(
+      `SELECT d.terms_of_service, u.username, d.app_name
+       FROM documents d
+       JOIN users u ON d.user_id = u.id
+       WHERE u.username = $1 AND LOWER(TRIM(d.app_name)) = LOWER(TRIM($2)) AND d.status = 'PUBLISHED'
+       LIMIT 1`,
+      [username, normalizedAppName]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    const { terms_of_service } = result.rows[0];
+    res.type('text/plain').send(terms_of_service);
+  } catch (error) {
+    console.error('Error fetching terms of service:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Apollo Server
 const server = new ApolloServer({
   typeDefs,
   resolvers,
   introspection: true,
-  includeStacktraceInErrorResponses: process.env.NODE_ENV !== 'production',
+  includeStacktraceInErrorResponses: true,
+  formatError: (error) => {
+    console.error('GraphQL Error:', {
+      message: error.message,
+      locations: error.locations,
+      path: error.path,
+      originalError: error.originalError?.message,
+    });
+    return error;
+  },
 });
 
 // Start server

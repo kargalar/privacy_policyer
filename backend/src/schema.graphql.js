@@ -22,6 +22,7 @@ export const typeDefs = `#graphql
   type User {
     id: ID!
     email: String!
+    username: String
     fullName: String
     status: UserStatus!
     isAdmin: Boolean!
@@ -78,7 +79,7 @@ export const typeDefs = `#graphql
 
   type Mutation {
     # Auth
-    register(email: String!, password: String!, fullName: String!): User!
+    register(email: String!, password: String!, fullName: String!, username: String): User!
     login(email: String!, password: String!): AuthPayload!
     
     # Questions
@@ -88,6 +89,7 @@ export const typeDefs = `#graphql
     generateDocuments(appName: String!, answers: [AnswerInput!]!): Document!
     approveDocument(documentId: ID!): Document!
     publishDocument(documentId: ID!): Document!
+    unpublishDocument(documentId: ID!): Document!
     deleteDocument(documentId: ID!): Boolean!
     
     # Admin

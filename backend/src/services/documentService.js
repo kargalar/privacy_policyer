@@ -7,25 +7,37 @@ export const createDocument = async (userId, appName, appData) => {
     try {
         // Gemini ile dokümanları oluştur
         console.log('Creating documents with Gemini API...');
+        console.log('AppData received:', appData);
+
         const { privacyPolicy, termsOfService } = await generateDocuments({
             appName,
             ...appData,
         });
 
+        console.log('✓ Documents generated successfully');
+
         // Veritabanına kaydet
         const result = await pool.query(
-            `INSERT INTO documents (id, user_id, app_name, privacy_policy, terms_of_service, status) 
-       VALUES ($1, $2, $3, $4, $5, 'DRAFT') 
-       RETURNING id, user_id, app_name, status, created_at`,
+            `INSERT INTO documents (id, user_id, app_name, privacy_policy, terms_of_service, status, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, 'DRAFT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+       RETURNING id, user_id, app_name, status, created_at, updated_at`,
             [uuidv4(), userId, appName, privacyPolicy, termsOfService]
         );
 
+        console.log('✓ Document saved to database:', result.rows[0].id);
+
         return {
-            ...result.rows[0],
+            id: result.rows[0].id,
+            userId: result.rows[0].user_id,
+            appName: result.rows[0].app_name,
             privacyPolicy,
             termsOfService,
+            status: result.rows[0].status,
+            createdAt: result.rows[0].created_at,
+            updatedAt: result.rows[0].updated_at,
         };
     } catch (error) {
+        console.error('DocumentService.createDocument Error:', error.message);
         throw error;
     }
 };
@@ -139,6 +151,26 @@ export const publishDocument = async (documentId) => {
        SET status = 'PUBLISHED', updated_at = CURRENT_TIMESTAMP 
        WHERE id = $1 
        RETURNING id, user_id, app_name, status, updated_at`,
+            [documentId]
+        );
+
+        if (result.rows.length === 0) {
+            throw new Error('Document not found');
+        }
+
+        return result.rows[0];
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const unpublishDocument = async (documentId) => {
+    try {
+        const result = await pool.query(
+            `UPDATE documents 
+       SET status = 'DRAFT', updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $1 
+       RETURNING id, user_id, app_name, privacy_policy, terms_of_service, status, created_at, updated_at`,
             [documentId]
         );
 

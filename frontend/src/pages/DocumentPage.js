@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     GET_DOCUMENT_QUERY,
     APPROVE_DOCUMENT_MUTATION,
     PUBLISH_DOCUMENT_MUTATION,
+    UNPUBLISH_DOCUMENT_MUTATION,
+    DELETE_DOCUMENT_MUTATION,
 } from '../graphql/queries';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -14,18 +16,32 @@ import {
     CheckCircle,
     Globe,
     ArrowLeft,
+    Copy,
+    ExternalLink,
+    Trash2,
+    RotateCcw,
 } from 'lucide-react';
 
 const DocumentPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const [activeTab, setActiveTab] = useState('privacy');
+    const [copiedUrl, setCopiedUrl] = useState(null);
 
-    const { data: documentData, loading } = useQuery(GET_DOCUMENT_QUERY, {
+    const { data: documentData, loading, refetch, stopPolling } = useQuery(GET_DOCUMENT_QUERY, {
         variables: { id },
         skip: !isAuthenticated,
+        pollInterval: 2000, // Her 2 saniyede bir refresh et
+        fetchPolicy: 'cache-and-network', // Cache'den oku ama network'ten de al
     });
+
+    // Doküman hazırlanırken polling yap, hazır olunca durdur
+    useEffect(() => {
+        if (documentData?.document?.privacyPolicy && documentData?.document?.termsOfService) {
+            stopPolling();
+        }
+    }, [documentData, stopPolling]);
 
     const [approveDocument, { loading: approving }] = useMutation(
         APPROVE_DOCUMENT_MUTATION,
@@ -51,6 +67,31 @@ const DocumentPage = () => {
         }
     );
 
+    const [unpublishDocument, { loading: unpublishing }] = useMutation(
+        UNPUBLISH_DOCUMENT_MUTATION,
+        {
+            onCompleted: () => {
+                alert('Doküman yayından kaldırıldı!');
+            },
+            onError: (error) => {
+                alert('Hata: ' + error.message);
+            },
+        }
+    );
+
+    const [deleteDocumentMutation, { loading: deleting }] = useMutation(
+        DELETE_DOCUMENT_MUTATION,
+        {
+            onCompleted: () => {
+                alert('Doküman silindi!');
+                navigate('/documents');
+            },
+            onError: (error) => {
+                alert('Hata: ' + error.message);
+            },
+        }
+    );
+
     if (!isAuthenticated) {
         navigate('/login');
         return null;
@@ -58,8 +99,21 @@ const DocumentPage = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <Loader className="w-8 h-8 animate-spin text-indigo-600" />
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+                <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+                    <Loader className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        Dokümanlar Oluşturuluyor
+                    </h2>
+                    <p className="text-gray-600 mb-4">
+                        Yapay zeka tarafından özel dokümanlarınız oluşturuluyor...
+                    </p>
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+                        <p className="text-sm text-indigo-700">
+                            ⏱️ Bu işlem birkaç dakika sürebilir. Lütfen sayfayı kapatmayın.
+                        </p>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -102,6 +156,37 @@ const DocumentPage = () => {
         if (window.confirm('Bu dokümanı yayınlamak istediğinizden emin misiniz?')) {
             publishDocument({ variables: { documentId: id } });
         }
+    };
+
+    const handleUnpublish = () => {
+        if (window.confirm('Bu dokümanı yayından kaldırmak istediğinizden emin misiniz? Halk tarafından erişilemez hale gelecektir.')) {
+            unpublishDocument({ variables: { documentId: id } });
+        }
+    };
+
+    const handleDelete = () => {
+        if (window.confirm('Bu dokümanı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
+            deleteDocumentMutation({ variables: { documentId: id } });
+        }
+    };
+
+    const normalizeAppName = (name) => {
+        return name.trim().replace(/\s+/g, '-').toLowerCase();
+    };
+
+    const getPublicUrl = (type) => {
+        const normalizedAppName = normalizeAppName(document.appName);
+        return `${window.location.origin}/public/${user?.username || 'username'}/${normalizedAppName}/${type}`;
+    };
+
+    const copyToClipboard = (url, type) => {
+        navigator.clipboard.writeText(url);
+        setCopiedUrl(type);
+        setTimeout(() => setCopiedUrl(null), 2000);
+    };
+
+    const openUrl = (url) => {
+        window.open(url, '_blank');
     };
 
     const handleDownload = (type) => {
@@ -170,33 +255,13 @@ const DocumentPage = () => {
                                 Doküman Taslak Durumunda
                             </h2>
                             <p className="text-blue-700 text-sm">
-                                Dokümanları inceledikten sonra onaylayabilirsiniz
-                            </p>
-                        </div>
-                        <button
-                            onClick={handleApprove}
-                            disabled={approving}
-                            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
-                        >
-                            {approving ? 'Onaylanıyor...' : 'Onayla'}
-                        </button>
-                    </div>
-                )}
-
-                {document.status === 'APPROVED' && (
-                    <div className="mb-8 bg-green-50 border border-green-200 rounded-lg p-6 flex items-center justify-between">
-                        <div>
-                            <h2 className="font-semibold text-green-900 mb-1">
-                                Doküman Onaylandı
-                            </h2>
-                            <p className="text-green-700 text-sm">
-                                Dokümanları yayınlayabilirsiniz
+                                Dokümanları inceledikten sonra yayınlayabilirsiniz
                             </p>
                         </div>
                         <button
                             onClick={handlePublish}
                             disabled={publishing}
-                            className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50 flex items-center gap-2"
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
                         >
                             {publishing ? 'Yayınlanıyor...' : (
                                 <>
@@ -204,6 +269,106 @@ const DocumentPage = () => {
                                     Yayınla
                                 </>
                             )}
+                        </button>
+                    </div>
+                )}
+
+                {document.status === 'PUBLISHED' && (
+                    <div className="mb-8 bg-purple-50 border border-purple-200 rounded-lg p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Globe className="w-5 h-5 text-purple-600" />
+                            <h2 className="font-semibold text-purple-900">
+                                Dokümanlar Yayınlandı! 🎉
+                            </h2>
+                        </div>
+                        <p className="text-purple-700 text-sm mb-4">
+                            Dokümanlarınız artık herkese açık URL'ler aracılığıyla erişilebilir:
+                        </p>
+                        <div className="space-y-3">
+                            <div className="bg-white rounded p-4 border border-purple-200">
+                                <p className="text-xs text-purple-600 mb-2 font-semibold">Privacy Policy URL:</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <code className="text-xs bg-purple-50 px-3 py-2 rounded flex-1 min-w-0 text-gray-700 break-all font-mono">
+                                        {getPublicUrl('privacypolicy')}
+                                    </code>
+                                    <button
+                                        onClick={() => copyToClipboard(getPublicUrl('privacypolicy'), 'privacy')}
+                                        className="p-2 bg-purple-100 hover:bg-purple-200 rounded transition"
+                                        title="Kopyala"
+                                    >
+                                        {copiedUrl === 'privacy' ? (
+                                            <CheckCircle className="w-4 h-4 text-green-600" />
+                                        ) : (
+                                            <Copy className="w-4 h-4 text-purple-600" />
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={() => openUrl(getPublicUrl('privacypolicy'))}
+                                        className="p-2 bg-purple-100 hover:bg-purple-200 rounded transition"
+                                        title="Siteyi Aç"
+                                    >
+                                        <ExternalLink className="w-4 h-4 text-purple-600" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="bg-white rounded p-4 border border-purple-200">
+                                <p className="text-xs text-purple-600 mb-2 font-semibold">Terms of Service URL:</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <code className="text-xs bg-purple-50 px-3 py-2 rounded flex-1 min-w-0 text-gray-700 break-all font-mono">
+                                        {getPublicUrl('termsofservice')}
+                                    </code>
+                                    <button
+                                        onClick={() => copyToClipboard(getPublicUrl('termsofservice'), 'terms')}
+                                        className="p-2 bg-purple-100 hover:bg-purple-200 rounded transition"
+                                        title="Kopyala"
+                                    >
+                                        {copiedUrl === 'terms' ? (
+                                            <CheckCircle className="w-4 h-4 text-green-600" />
+                                        ) : (
+                                            <Copy className="w-4 h-4 text-purple-600" />
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={() => openUrl(getPublicUrl('termsofservice'))}
+                                        className="p-2 bg-purple-100 hover:bg-purple-200 rounded transition"
+                                        title="Siteyi Aç"
+                                    >
+                                        <ExternalLink className="w-4 h-4 text-purple-600" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex gap-2 mt-6 pt-6 border-t border-purple-200">
+                            <button
+                                onClick={handleUnpublish}
+                                disabled={unpublishing}
+                                className="flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition disabled:opacity-50 font-medium"
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                                {unpublishing ? 'Kaldırılıyor...' : 'Yayından Kaldır'}
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                disabled={deleting}
+                                className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition disabled:opacity-50 font-medium ml-auto"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                {deleting ? 'Siliniyor...' : 'Sil'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* DRAFT ve Published olmayan dokümanlar için Delete butonu */}
+                {document.status === 'DRAFT' && (
+                    <div className="mb-8 flex justify-end">
+                        <button
+                            onClick={handleDelete}
+                            disabled={deleting}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition disabled:opacity-50 font-medium"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            {deleting ? 'Siliniyor...' : 'Dokümanı Sil'}
                         </button>
                     </div>
                 )}

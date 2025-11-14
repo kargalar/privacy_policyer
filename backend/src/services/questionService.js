@@ -30,8 +30,8 @@ export const submitAnswers = async (userId, answers) => {
         // Yeni cevapları ekle
         for (const answer of answers) {
             await pool.query(
-                `INSERT INTO answers (id, user_id, question_id, value) 
-         VALUES ($1, $2, $3, $4)`,
+                `INSERT INTO answers (id, user_id, question_id, value, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
                 [uuidv4(), userId, answer.questionId, answer.value]
             );
         }

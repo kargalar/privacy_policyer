@@ -31,6 +31,7 @@ export const GET_ME_QUERY = gql`
     me {
       id
       email
+      username
       fullName
       isAdmin
       status
@@ -111,6 +112,21 @@ export const PUBLISH_DOCUMENT_MUTATION = gql`
       id
       status
     }
+  }
+`;
+
+export const UNPUBLISH_DOCUMENT_MUTATION = gql`
+  mutation UnpublishDocument($documentId: ID!) {
+    unpublishDocument(documentId: $documentId) {
+      id
+      status
+    }
+  }
+`;
+
+export const DELETE_DOCUMENT_MUTATION = gql`
+  mutation DeleteDocument($documentId: ID!) {
+    deleteDocument(documentId: $documentId)
   }
 `;
 

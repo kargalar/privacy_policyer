@@ -9,7 +9,6 @@ import { useAuth } from '../context/AuthContext';
 import { AlertCircle, Loader } from 'lucide-react';
 
 const CreatePage = () => {
-    const [appName, setAppName] = useState('');
     const [answers, setAnswers] = useState({});
     const [error, setError] = useState('');
     const navigate = useNavigate();
@@ -23,9 +22,12 @@ const CreatePage = () => {
         GENERATE_DOCUMENTS_MUTATION,
         {
             onCompleted: (data) => {
+                console.log('✓ Document created:', data);
+                // Hemen document page'e yönlendir
                 navigate(`/documents/${data.generateDocuments.id}`);
             },
             onError: (error) => {
+                console.error('✗ Error creating document:', error);
                 setError(error.message || 'Dokümanlar oluşturulamadı');
             },
         }
@@ -49,11 +51,6 @@ const CreatePage = () => {
         e.preventDefault();
         setError('');
 
-        if (!appName.trim()) {
-            setError('Lütfen uygulama adı girin');
-            return;
-        }
-
         // Check if all required questions are answered
         const allAnswered = questions
             .filter((q) => q.required)
@@ -71,9 +68,13 @@ const CreatePage = () => {
                 value: answers[q.id].toString(),
             }));
 
+        // İlk soru'nun cevabını appName olarak kullan
+        const firstQuestion = questions[0];
+        const appNameFromAnswers = answers[firstQuestion?.id];
+
         await generateDocuments({
             variables: {
-                appName,
+                appName: appNameFromAnswers || 'Uygulama',
                 answers: answerInputs,
             },
         });
@@ -111,21 +112,6 @@ const CreatePage = () => {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* App Name */}
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                        <label className="block text-lg font-semibold text-gray-900 mb-3">
-                            Uygulamanızın Adı *
-                        </label>
-                        <input
-                            type="text"
-                            value={appName}
-                            onChange={(e) => setAppName(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            placeholder="örn: MyApp, Harita Uygulaması"
-                            required
-                        />
-                    </div>
-
                     {/* Questions */}
                     {questions.map((question, index) => (
                         <div key={question.id} className="bg-white rounded-lg shadow-md p-6">

@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import pool from '../utils/database.js';
 import { v4 as uuidv4 } from 'uuid';
 
-export const registerUser = async (email, password, fullName) => {
+export const registerUser = async (email, password, fullName, username) => {
     try {
         // Email zaten mevcut mu kontrolü
         const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -12,15 +12,23 @@ export const registerUser = async (email, password, fullName) => {
             throw new Error('Email already registered');
         }
 
+        // Username zaten mevcut mu kontrolü
+        if (username) {
+            const existingUsername = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
+            if (existingUsername.rows.length > 0) {
+                throw new Error('Username already taken');
+            }
+        }
+
         // Password hash'le
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Kullanıcıyı ekle
         const result = await pool.query(
-            `INSERT INTO users (id, email, password, full_name, status, is_admin, updated_at) 
-       VALUES ($1, $2, $3, $4, 'PENDING', FALSE, NOW()) 
-       RETURNING id, email, full_name, status, is_admin, created_at`,
-            [uuidv4(), email, hashedPassword, fullName]
+            `INSERT INTO users (id, email, password, full_name, username, status, is_admin, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, 'PENDING', FALSE, NOW()) 
+       RETURNING id, email, full_name, username, status, is_admin, created_at`,
+            [uuidv4(), email, hashedPassword, fullName, username || email.split('@')[0]]
         );
 
         return result.rows[0];
@@ -133,7 +141,7 @@ export const rejectUser = async (userId) => {
 export const getUserById = async (userId) => {
     try {
         const result = await pool.query(
-            `SELECT id, email, full_name, status, is_admin 
+            `SELECT id, email, full_name, username, status, is_admin 
        FROM users 
        WHERE id = $1`,
             [userId]
