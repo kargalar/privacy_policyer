@@ -167,3 +167,16 @@ export const REJECT_USER_MUTATION = gql`
     }
   }
 `;
+
+export const GET_PUBLIC_DOCUMENT_QUERY = gql`
+  query GetPublicDocument($username: String!, $appName: String!) {
+    publicDocument(username: $username, appName: $appName) {
+      id
+      appName
+      privacyPolicy
+      termsOfService
+      status
+      createdAt
+    }
+  }
+`;

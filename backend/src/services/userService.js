@@ -166,3 +166,22 @@ export const getAllUsers = async () => {
         throw error;
     }
 };
+
+export const getUserByUsername = async (username) => {
+    try {
+        const result = await pool.query(
+            `SELECT id, email, username, status 
+       FROM users 
+       WHERE username = $1`,
+            [username]
+        );
+
+        if (result.rows.length === 0) {
+            return null;
+        }
+
+        return result.rows[0];
+    } catch (error) {
+        throw error;
+    }
+};

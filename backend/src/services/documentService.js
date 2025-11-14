@@ -222,3 +222,37 @@ export const deleteDocument = async (documentId) => {
         throw error;
     }
 };
+
+export const getPublishedDocumentByUsernameAndAppName = async (username, appName) => {
+    try {
+        // Normalize app name to match the stored format
+        const normalizedAppName = appName.trim().replace(/\s+/g, '-').toLowerCase();
+
+        const result = await pool.query(
+            `SELECT d.id, d.user_id, d.app_name, d.privacy_policy, d.terms_of_service, d.status, d.created_at, d.updated_at 
+       FROM documents d
+       JOIN users u ON d.user_id = u.id
+       WHERE u.username = $1 AND (LOWER(REPLACE(d.app_name, ' ', '-')) = $2 OR d.app_name = $3) AND d.status = 'PUBLISHED'
+       LIMIT 1`,
+            [username, normalizedAppName, appName]
+        );
+
+        if (result.rows.length === 0) {
+            return null;
+        }
+
+        const row = result.rows[0];
+        return {
+            id: row.id,
+            userId: row.user_id,
+            appName: row.app_name,
+            privacyPolicy: row.privacy_policy,
+            termsOfService: row.terms_of_service,
+            status: row.status,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+        };
+    } catch (error) {
+        throw error;
+    }
+};

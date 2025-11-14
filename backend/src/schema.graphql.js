@@ -71,6 +71,9 @@ export const typeDefs = `#graphql
     document(id: ID!): Document
     documentByApp(appName: String!): Document
     
+    # Public Documents (no auth required)
+    publicDocument(username: String!, appName: String!): Document
+    
     # Admin
     pendingUsers: [User!]!
     allUsers: [User!]!

@@ -13,6 +13,7 @@ import DocumentsPage from './pages/DocumentsPage';
 import DocumentPage from './pages/DocumentPage';
 import AdminPage from './pages/AdminPage';
 import ApprovalPage from './pages/ApprovalPage';
+import PublicDocumentPage from './pages/PublicDocumentPage';
 
 import './App.css';
 
@@ -25,6 +26,9 @@ function App() {
                         {/* Public Routes */}
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/register" element={<RegisterPage />} />
+
+                        {/* Public Document Routes - No Authentication Required */}
+                        <Route path="/public/:username/:appName/:type" element={<PublicDocumentPage />} />
 
                         {/* Protected Routes */}
                         <Route

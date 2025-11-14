@@ -57,6 +57,21 @@ export const resolvers = {
             requireAdmin(context);
             return await userService.getAllUsers();
         },
+
+        publicDocument: async (_, { username, appName }) => {
+            // No auth required - public access
+            const user = await userService.getUserByUsername(username);
+            if (!user) {
+                throw new Error('User not found');
+            }
+
+            const doc = await documentService.getPublishedDocumentByUsernameAndAppName(username, appName);
+            if (!doc) {
+                throw new Error('Document not found or not published');
+            }
+
+            return doc;
+        },
     },
 
     Mutation: {
