@@ -7,7 +7,7 @@ import {
     REJECT_USER_MUTATION,
 } from '../graphql/queries';
 import { useAuth } from '../context/AuthContext';
-import { AlertCircle, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { CheckCircle, XCircle, Loader } from 'lucide-react';
 
 const AdminPage = () => {
     const navigate = useNavigate();

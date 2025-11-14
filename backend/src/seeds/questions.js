@@ -67,8 +67,8 @@ const seedQuestions = async () => {
 
         for (const q of questions) {
             await pool.query(
-                `INSERT INTO questions (id, question, description, type, required, options, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `INSERT INTO questions (id, question, description, type, required, options, sort_order, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
          ON CONFLICT DO NOTHING`,
                 [
                     uuidv4(),

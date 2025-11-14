@@ -17,8 +17,8 @@ export const registerUser = async (email, password, fullName) => {
 
         // Kullanıcıyı ekle
         const result = await pool.query(
-            `INSERT INTO users (id, email, password, full_name, status, is_admin) 
-       VALUES ($1, $2, $3, $4, 'PENDING', FALSE) 
+            `INSERT INTO users (id, email, password, full_name, status, is_admin, updated_at) 
+       VALUES ($1, $2, $3, $4, 'PENDING', FALSE, NOW()) 
        RETURNING id, email, full_name, status, is_admin, created_at`,
             [uuidv4(), email, hashedPassword, fullName]
         );

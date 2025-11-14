@@ -2,26 +2,30 @@
 
 ## 🚀 Hızlı Başlangıç
 
-### Seçenek 1: Docker ile (Önerilen)
+### Ön Gereksinimler
+
+- **Node.js** (v18 veya daha yeni)
+- **PostgreSQL** (14 veya daha yeni)
+- **npm** veya **yarn**
+
+### Adım 1: PostgreSQL Kurulumu
+
+1. [PostgreSQL indir](https://www.postgresql.org/download/)
+2. Kurulum sırasında password belirle (örn: `postgres`)
+3. Kurulum sonrası PostgreSQL komut satırını aç:
 
 ```bash
-# Proje klasörüne gidin
-cd privacy_policyer
+# PostgreSQL'e bağlan
+psql -U postgres
 
-# Gemini API key'ini ayarlayın
-export GEMINI_API_KEY="your-gemini-api-key"
+# Veritabanını oluştur
+CREATE DATABASE privacy_policy_db;
 
-# Docker Compose ile tüm servisleri başlatın
-docker-compose up
+# Çıkış yap
+\q
 ```
 
-Ardından:
-- Backend: http://localhost:4000/graphql
-- Frontend: http://localhost:3000
-
-### Seçenek 2: Manuel Kurulum
-
-#### Backend Setup
+### Adım 2: Backend Kurulumu
 
 1. Backend klasörüne gidin:
 ```bash
@@ -35,26 +39,37 @@ npm install
 
 3. Ortam değişkenlerini ayarlayın:
 ```bash
-# .env dosyasını düzenleyin
-cp .env.example .env  # Windows'ta: copy .env.example .env
+# .env dosyasını oluştur
+copy .env.example .env
 ```
 
-4. Veritabanını ayarlayın:
+4. `.env` dosyasını düzenleyin ve aşağıdaki değerleri güncelleyin:
+```
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/privacy_policy_db"
+GEMINI_API_KEY=your-gemini-api-key
+JWT_SECRET=your-secret-key-change-in-production
+```
+
+5. Veritabanını ayarlayın:
 ```bash
-npm run migrate
+npx prisma migrate dev --name init
 ```
 
-5. Soruları seed'leyin:
+6. Soruları seed'leyin:
 ```bash
 npm run seed
 ```
 
-6. Backend'i başlatın:
+7. Backend'i başlatın (geliştirme modu - canlı güncellemeler):
 ```bash
 npm run dev
 ```
 
-#### Frontend Setup
+Backend http://localhost:4000/graphql adresinde çalışacaktır.
+
+### Adım 3: Frontend Kurulumu
+
+Yeni bir terminal açın ve:
 
 1. Frontend klasörüne gidin:
 ```bash
@@ -66,25 +81,18 @@ cd frontend
 npm install
 ```
 
-3. Frontend'i başlatın:
+3. Ortam değişkenlerini ayarlayın:
+```bash
+# .env dosyasını oluştur
+copy .env.example .env
+```
+
+4. Frontend'i başlatın (geliştirme modu - canlı güncellemeler):
 ```bash
 npm start
 ```
 
-#### PostgreSQL Kurulumu
-
-Windows'ta PostgreSQL kurulumundan sonra:
-
-```bash
-# PostgreSQL command line'a bağlanın
-psql -U postgres
-
-# Veritabanını oluşturun
-CREATE DATABASE privacy_policy_db;
-
-# Çıkın
-\q
-```
+Frontend http://localhost:3000 adresinde açılacaktır.
 
 ## 📋 Kurulum Sonrası Yapılacaklar
 

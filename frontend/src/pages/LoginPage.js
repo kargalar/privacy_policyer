@@ -51,7 +51,7 @@ const LoginPage = () => {
                     Giriş Yap
                 </h1>
                 <p className="text-center text-gray-600 mb-6">
-                    Privacy Policy Generator'e hoş geldiniz
+                    Privacy Policy Genertor'e hoş geldiniz
                 </p>
 
                 {error && (

@@ -19,7 +19,7 @@ import {
 const DocumentPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [activeTab, setActiveTab] = useState('privacy');
 
     const { data: documentData, loading } = useQuery(GET_DOCUMENT_QUERY, {
@@ -213,8 +213,8 @@ const DocumentPage = () => {
                     <button
                         onClick={() => setActiveTab('privacy')}
                         className={`px-6 py-3 font-medium border-b-2 transition ${activeTab === 'privacy'
-                                ? 'border-indigo-600 text-indigo-600'
-                                : 'border-transparent text-gray-600 hover:text-gray-900'
+                            ? 'border-indigo-600 text-indigo-600'
+                            : 'border-transparent text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         Privacy Policy
@@ -222,8 +222,8 @@ const DocumentPage = () => {
                     <button
                         onClick={() => setActiveTab('terms')}
                         className={`px-6 py-3 font-medium border-b-2 transition ${activeTab === 'terms'
-                                ? 'border-indigo-600 text-indigo-600'
-                                : 'border-transparent text-gray-600 hover:text-gray-900'
+                            ? 'border-indigo-600 text-indigo-600'
+                            : 'border-transparent text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         Terms of Service

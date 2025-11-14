@@ -12,7 +12,7 @@ import {
 
 const DocumentsPage = () => {
     const navigate = useNavigate();
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated } = useAuth();
 
     const { data: documentsData, loading } = useQuery(GET_MY_DOCUMENTS_QUERY, {
         skip: !isAuthenticated,
