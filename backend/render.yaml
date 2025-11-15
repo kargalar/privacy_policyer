@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: privacy-policy-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromService:
+          type: pserv
+          name: privacy-policy-db
+          property: connectionString
+      - key: FRONTEND_URL
+        value: https://your-frontend.vercel.app
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GOOGLE_API_KEY
+        value: ${GOOGLE_API_KEY}
+
+databases:
+  - name: privacy-policy-db
+    plan: free

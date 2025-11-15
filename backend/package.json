@@ -8,7 +8,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/seeds/questions.js",
-    "migrate": "node src/migrations/init.js"
+    "migrate": "node src/migrations/init.js",
+    "build": "npx prisma generate",
+    "postinstall": "npx prisma generate"
   },
   "keywords": [
     "privacy-policy",
