@@ -1,8 +1,8 @@
 -- DropForeignKey
-ALTER TABLE "answers" DROP CONSTRAINT "answers_user_id_fkey";
+ALTER TABLE IF EXISTS "answers" DROP CONSTRAINT IF EXISTS "answers_user_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "answers" DROP CONSTRAINT "answers_question_id_fkey";
+ALTER TABLE IF EXISTS "answers" DROP CONSTRAINT IF EXISTS "answers_question_id_fkey";
 
 -- DropTable
-DROP TABLE "answers";
+DROP TABLE IF EXISTS "answers";
