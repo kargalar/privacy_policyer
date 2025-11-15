@@ -8,6 +8,7 @@ const { Pool } = pg;
 // Use DATABASE_URL if available (production), otherwise use individual config
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
     // Fallback for local development
     ...(process.env.DATABASE_URL ? {} : {
         host: process.env.DB_HOST || 'localhost',
