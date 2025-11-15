@@ -14,3 +14,5 @@ promt daihl her şey inilizce yap
 documents create date herp invalid gösterilyiro.
 
 yayınlanmış sayfanıın sekme kısmındaki ismi uygulamaın ismi olsun
+
+döküman silindiken sonra dökğmanlar sayfasında anında kaybolsun
