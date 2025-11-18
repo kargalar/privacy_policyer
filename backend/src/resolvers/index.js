@@ -34,7 +34,10 @@ export const resolvers = {
                 throw new Error('Document not found or access denied');
             }
 
-            return doc;
+            return {
+                ...doc,
+                deleteRequests: doc.deleteRequests || [],
+            };
         },
 
         documentByApp: async (_, { appName }, context) => {
@@ -210,6 +213,28 @@ export const resolvers = {
             }
 
             return await documentService.deleteDocument(documentId);
+        },
+
+        createDeleteRequest: async (_, { documentId, email }, context) => {
+            // Bu endpoint public olabilir - context'i kontrol etmek isteğe bağlı
+            const doc = await documentService.getDocumentById(documentId);
+
+            if (!doc) {
+                throw new Error('Document not found');
+            }
+
+            // Doküman published olmalı
+            if (doc.status !== 'PUBLISHED') {
+                throw new Error('Document must be published to create delete requests');
+            }
+
+            const deleteRequest = await documentService.createDeleteRequest(documentId, email);
+            return {
+                id: deleteRequest.id,
+                documentId: deleteRequest.document_id,
+                email: deleteRequest.email,
+                createdAt: deleteRequest.created_at,
+            };
         },
 
         updateDocument: async (_, { documentId, appName, privacyPolicy, termsOfService }, context) => {

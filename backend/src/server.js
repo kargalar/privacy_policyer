@@ -84,6 +84,17 @@ const initDatabase = async () => {
     `);
     console.log('✓ Documents table created');
 
+    // Delete Requests table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS delete_requests (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        email VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('✓ Delete Requests table created');
+
     // Create admin user
     await pool.query(`
       INSERT INTO users (email, password, username, status, updated_at)

@@ -11,6 +11,7 @@ import RegisterPage from './pages/RegisterPage';
 import CreatePage from './pages/CreatePage';
 import DocumentsPage from './pages/DocumentsPage';
 import DocumentPage from './pages/DocumentPage';
+import DeleteRequestPage from './pages/DeleteRequestPage';
 import AdminPage from './pages/AdminPage';
 import ApprovalPage from './pages/ApprovalPage';
 import PublicDocumentPage from './pages/PublicDocumentPage';
@@ -55,6 +56,13 @@ function App() {
                                 <ProtectedRoute>
                                     <DocumentPage />
                                 </ProtectedRoute>
+                            }
+                        />
+
+                        <Route
+                            path="/documents/:id/delete-request"
+                            element={
+                                <DeleteRequestPage />
                             }
                         />
 

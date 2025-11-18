@@ -366,9 +366,6 @@ const DocumentPage = () => {
                                 Documents Published! 🎉
                             </h2>
                         </div>
-                        <p className="text-purple-700 text-sm mb-4">
-                            Your documents are now accessible through public URLs:
-                        </p>
                         <div className="space-y-3">
                             <div className="bg-white rounded p-4 border border-purple-200">
                                 <p className="text-xs text-purple-600 mb-2 font-semibold">Privacy Policy URL:</p>
@@ -422,6 +419,32 @@ const DocumentPage = () => {
                                     </button>
                                 </div>
                             </div>
+                            <div className="bg-white rounded p-4 border border-purple-200">
+                                <p className="text-xs text-purple-600 mb-2 font-semibold">Delete Request URL:</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <code className="text-xs bg-purple-50 px-3 py-2 rounded flex-1 min-w-0 text-gray-700 break-all font-mono">
+                                        {`${window.location.origin}/documents/${id}/delete-request`}
+                                    </code>
+                                    <button
+                                        onClick={() => copyToClipboard(`${window.location.origin}/documents/${id}/delete-request`, 'delete')}
+                                        className="p-2 bg-purple-100 hover:bg-purple-200 rounded transition"
+                                        title="Copy"
+                                    >
+                                        {copiedUrl === 'delete' ? (
+                                            <CheckCircle className="w-4 h-4 text-green-600" />
+                                        ) : (
+                                            <Copy className="w-4 h-4 text-purple-600" />
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={() => openUrl(`${window.location.origin}/documents/${id}/delete-request`)}
+                                        className="p-2 bg-purple-100 hover:bg-purple-200 rounded transition"
+                                        title="Open Site"
+                                    >
+                                        <ExternalLink className="w-4 h-4 text-purple-600" />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div className="flex gap-2 mt-6 pt-6 border-t border-purple-200">
                             <button
@@ -459,10 +482,10 @@ const DocumentPage = () => {
                 )}
 
                 {/* Tab Navigation */}
-                <div className="mb-6 flex gap-2 border-b border-gray-200">
+                <div className="mb-6 flex gap-2 border-b border-gray-200 overflow-x-auto">
                     <button
                         onClick={() => setActiveTab('privacy')}
-                        className={`px-6 py-3 font-medium border-b-2 transition ${activeTab === 'privacy'
+                        className={`px-6 py-3 font-medium border-b-2 transition whitespace-nowrap ${activeTab === 'privacy'
                             ? 'border-indigo-600 text-indigo-600'
                             : 'border-transparent text-gray-600 hover:text-gray-900'
                             }`}
@@ -471,37 +494,115 @@ const DocumentPage = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('terms')}
-                        className={`px-6 py-3 font-medium border-b-2 transition ${activeTab === 'terms'
+                        className={`px-6 py-3 font-medium border-b-2 transition whitespace-nowrap ${activeTab === 'terms'
                             ? 'border-indigo-600 text-indigo-600'
                             : 'border-transparent text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         Terms of Service
                     </button>
+                    {document.deleteRequests && document.deleteRequests.length > 0 && (
+                        <button
+                            onClick={() => setActiveTab('deletions')}
+                            className={`px-6 py-3 font-medium border-b-2 transition whitespace-nowrap ${activeTab === 'deletions'
+                                ? 'border-red-600 text-red-600'
+                                : 'border-transparent text-gray-600 hover:text-gray-900'
+                                }`}
+                        >
+                            Deletion Requests ({document.deleteRequests.length})
+                        </button>
+                    )}
                 </div>
 
                 {/* Document Content */}
-                <div className="bg-white rounded-lg shadow-md p-8">
-                    <div className="flex justify-end mb-6">
-                        <button
-                            onClick={() =>
-                                handleDownload(activeTab === 'privacy' ? 'privacy' : 'terms')
-                            }
-                            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-                        >
-                            <Download className="w-4 h-4" />
-                            Download
-                        </button>
-                    </div>
+                {activeTab !== 'deletions' && (
+                    <div className="bg-white rounded-lg shadow-md p-8">
+                        <div className="flex justify-end mb-6">
+                            <button
+                                onClick={() =>
+                                    handleDownload(activeTab === 'privacy' ? 'privacy' : 'terms')
+                                }
+                                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                            >
+                                <Download className="w-4 h-4" />
+                                Download
+                            </button>
+                        </div>
 
-                    <div className="prose prose-sm max-w-none">
-                        <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                            {activeTab === 'privacy'
-                                ? document.privacyPolicy
-                                : document.termsOfService}
+                        <div className="prose prose-sm max-w-none">
+                            <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+                                {activeTab === 'privacy'
+                                    ? document.privacyPolicy
+                                    : document.termsOfService}
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
+
+                {/* Deletion Requests Tab */}
+                {activeTab === 'deletions' && (
+                    <div className="bg-white rounded-lg shadow-md p-8">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-red-600" />
+                            Account Deletion Requests
+                        </h2>
+
+                        {document.deleteRequests && document.deleteRequests.length > 0 ? (
+                            <div className="space-y-4">
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                                    <p className="text-sm text-red-800">
+                                        These users have requested account deletion. You should process these requests
+                                        according to your privacy policy and legal obligations.
+                                    </p>
+                                </div>
+
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="border-b border-gray-200">
+                                                <th className="text-left py-3 px-4 font-semibold text-gray-700">Email</th>
+                                                <th className="text-left py-3 px-4 font-semibold text-gray-700">Requested Date</th>
+                                                <th className="text-left py-3 px-4 font-semibold text-gray-700">Days Ago</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {document.deleteRequests.map((request) => {
+                                                const requestDate = new Date(request.createdAt);
+                                                const now = new Date();
+                                                const daysAgo = Math.floor((now - requestDate) / (1000 * 60 * 60 * 24));
+
+                                                return (
+                                                    <tr key={request.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                        <td className="py-3 px-4 text-gray-900 font-medium break-all">
+                                                            {request.email}
+                                                        </td>
+                                                        <td className="py-3 px-4 text-gray-600 text-sm">
+                                                            {requestDate.toLocaleDateString('en-US', {
+                                                                year: 'numeric',
+                                                                month: 'short',
+                                                                day: 'numeric',
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </td>
+                                                        <td className="py-3 px-4 text-gray-600 text-sm">
+                                                            {daysAgo === 0 ? 'Today' : `${daysAgo} ${daysAgo === 1 ? 'day' : 'days'} ago`}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-12">
+                                <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                                <p className="text-gray-600">No deletion requests yet</p>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Edit Modal */}
                 {isEditing && (

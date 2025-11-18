@@ -47,6 +47,14 @@ export const typeDefs = `#graphql
     status: DocumentStatus!
     createdAt: String!
     updatedAt: String!
+    deleteRequests: [DeleteRequest!]!
+  }
+
+  type DeleteRequest {
+    id: ID!
+    documentId: ID!
+    email: String!
+    createdAt: String!
   }
 
   type AuthPayload {
@@ -86,6 +94,9 @@ export const typeDefs = `#graphql
     publishDocument(documentId: ID!): Document!
     unpublishDocument(documentId: ID!): Document!
     deleteDocument(documentId: ID!): Boolean!
+    
+    # Delete Requests
+    createDeleteRequest(documentId: ID!, email: String!): DeleteRequest!
     
     # Admin
     approveUser(userId: ID!): User!

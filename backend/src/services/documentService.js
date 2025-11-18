@@ -78,6 +78,10 @@ export const getDocumentById = async (documentId) => {
         }
 
         const row = result.rows[0];
+
+        // Delete requests'i al
+        const deleteRequests = await getDeleteRequestsByDocumentId(documentId);
+
         return {
             id: row.id,
             userId: row.user_id,
@@ -87,6 +91,7 @@ export const getDocumentById = async (documentId) => {
             status: row.status,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
+            deleteRequests: deleteRequests,
         };
     } catch (error) {
         throw error;
@@ -251,6 +256,42 @@ export const getPublishedDocumentByUsernameAndAppName = async (username, appName
             createdAt: row.created_at,
             updatedAt: row.updated_at,
         };
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const createDeleteRequest = async (documentId, email) => {
+    try {
+        const result = await pool.query(
+            `INSERT INTO delete_requests (id, document_id, email, created_at)
+       VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+       RETURNING id, document_id, email, created_at`,
+            [uuidv4(), documentId, email]
+        );
+
+        return result.rows[0];
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const getDeleteRequestsByDocumentId = async (documentId) => {
+    try {
+        const result = await pool.query(
+            `SELECT id, document_id, email, created_at
+       FROM delete_requests
+       WHERE document_id = $1
+       ORDER BY created_at DESC`,
+            [documentId]
+        );
+
+        return result.rows.map((row) => ({
+            id: row.id,
+            documentId: row.document_id,
+            email: row.email,
+            createdAt: row.created_at,
+        }));
     } catch (error) {
         throw error;
     }

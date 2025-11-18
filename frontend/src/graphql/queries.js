@@ -84,6 +84,12 @@ export const GET_DOCUMENT_QUERY = gql`
       termsOfService
       status
       createdAt
+      deleteRequests {
+        id
+        documentId
+        email
+        createdAt
+      }
     }
   }
 `;
@@ -170,6 +176,17 @@ export const GET_PUBLIC_DOCUMENT_QUERY = gql`
       privacyPolicy
       termsOfService
       status
+      createdAt
+    }
+  }
+`;
+
+export const CREATE_DELETE_REQUEST_MUTATION = gql`
+  mutation CreateDeleteRequest($documentId: ID!, $email: String!) {
+    createDeleteRequest(documentId: $documentId, email: $email) {
+      id
+      documentId
+      email
       createdAt
     }
   }
