@@ -404,10 +404,10 @@ const DocumentPage = () => {
                                 <p className="text-xs text-purple-600 mb-2 font-semibold">Delete Request URL:</p>
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <code className="text-xs bg-purple-50 px-3 py-2 rounded flex-1 min-w-0 text-gray-700 break-all font-mono">
-                                        {`${window.location.origin}/documents/${id}/delete-request`}
+                                        {`${window.location.origin}/documents/${normalizeAppName(document.appName)}/delete-request`}
                                     </code>
                                     <button
-                                        onClick={() => copyToClipboard(`${window.location.origin}/documents/${id}/delete-request`, 'delete')}
+                                        onClick={() => copyToClipboard(`${window.location.origin}/documents/${normalizeAppName(document.appName)}/delete-request`, 'delete')}
                                         className="p-2 bg-purple-100 hover:bg-purple-200 rounded transition"
                                         title="Copy"
                                     >
@@ -418,7 +418,7 @@ const DocumentPage = () => {
                                         )}
                                     </button>
                                     <button
-                                        onClick={() => openUrl(`${window.location.origin}/documents/${id}/delete-request`)}
+                                        onClick={() => openUrl(`${window.location.origin}/documents/${normalizeAppName(document.appName)}/delete-request`)}
                                         className="p-2 bg-purple-100 hover:bg-purple-200 rounded transition"
                                         title="Open Site"
                                     >

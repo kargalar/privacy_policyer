@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 const DeleteRequestPage = () => {
-    const { id } = useParams();
+    const { appName } = useParams();
     const [email, setEmail] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState(null);
@@ -45,7 +45,7 @@ const DeleteRequestPage = () => {
 
         createDeleteRequest({
             variables: {
-                documentId: id,
+                appName: appName,
                 email: email.trim(),
             },
         });

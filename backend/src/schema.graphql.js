@@ -96,7 +96,7 @@ export const typeDefs = `#graphql
     deleteDocument(documentId: ID!): Boolean!
     
     # Delete Requests
-    createDeleteRequest(documentId: ID!, email: String!): DeleteRequest!
+    createDeleteRequest(appName: String!, email: String!): DeleteRequest!
     
     # Admin
     approveUser(userId: ID!): User!

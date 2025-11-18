@@ -56,8 +56,8 @@ export const getUserDocuments = async (userId) => {
             userId: row.user_id,
             appName: row.app_name,
             status: row.status,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
+            createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+            updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
         }));
     } catch (error) {
         throw error;
@@ -89,8 +89,8 @@ export const getDocumentById = async (documentId) => {
             privacyPolicy: row.privacy_policy,
             termsOfService: row.terms_of_service,
             status: row.status,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
+            createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+            updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
             deleteRequests: deleteRequests,
         };
     } catch (error) {
@@ -120,8 +120,8 @@ export const getDocumentByUserIdAndAppName = async (userId, appName) => {
             privacyPolicy: row.privacy_policy,
             termsOfService: row.terms_of_service,
             status: row.status,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
+            createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+            updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
         };
     } catch (error) {
         throw error;
@@ -253,8 +253,8 @@ export const getPublishedDocumentByUsernameAndAppName = async (username, appName
             privacyPolicy: row.privacy_policy,
             termsOfService: row.terms_of_service,
             status: row.status,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
+            createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+            updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
         };
     } catch (error) {
         throw error;
@@ -290,8 +290,46 @@ export const getDeleteRequestsByDocumentId = async (documentId) => {
             id: row.id,
             documentId: row.document_id,
             email: row.email,
-            createdAt: row.created_at,
+            createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
         }));
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const getDocumentByNormalizedAppName = async (normalizedAppName) => {
+    try {
+        // Normalize edilmiş app name ile document'ı bul
+        const result = await pool.query(
+            `SELECT id, user_id, app_name, privacy_policy, terms_of_service, status, created_at, updated_at 
+       FROM documents 
+       ORDER BY created_at DESC`
+        );
+
+        // Client-side'da normalize ederek karşılaştır
+        const row = result.rows.find(r => {
+            const normalizedDbAppName = r.app_name.trim().replace(/\s+/g, '-').toLowerCase();
+            return normalizedDbAppName === normalizedAppName;
+        });
+
+        if (!row) {
+            return null;
+        }
+
+        // Delete requests'i al
+        const deleteRequests = await getDeleteRequestsByDocumentId(row.id);
+
+        return {
+            id: row.id,
+            userId: row.user_id,
+            appName: row.app_name,
+            privacyPolicy: row.privacy_policy,
+            termsOfService: row.terms_of_service,
+            status: row.status,
+            createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+            updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
+            deleteRequests: deleteRequests,
+        };
     } catch (error) {
         throw error;
     }

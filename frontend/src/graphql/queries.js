@@ -182,8 +182,8 @@ export const GET_PUBLIC_DOCUMENT_QUERY = gql`
 `;
 
 export const CREATE_DELETE_REQUEST_MUTATION = gql`
-  mutation CreateDeleteRequest($documentId: ID!, $email: String!) {
-    createDeleteRequest(documentId: $documentId, email: $email) {
+  mutation CreateDeleteRequest($appName: String!, $email: String!) {
+    createDeleteRequest(appName: $appName, email: $email) {
       id
       documentId
       email

@@ -215,9 +215,15 @@ export const resolvers = {
             return await documentService.deleteDocument(documentId);
         },
 
-        createDeleteRequest: async (_, { documentId, email }, context) => {
+        createDeleteRequest: async (_, { appName, email }, context) => {
             // Bu endpoint public olabilir - context'i kontrol etmek isteğe bağlı
-            const doc = await documentService.getDocumentById(documentId);
+            // Normalized app name ile document'ı bul
+            const normalizeAppName = (name) => {
+                return name.trim().replace(/\s+/g, '-').toLowerCase();
+            };
+            const normalizedAppName = normalizeAppName(appName);
+
+            const doc = await documentService.getDocumentByNormalizedAppName(normalizedAppName);
 
             if (!doc) {
                 throw new Error('Document not found');
@@ -228,7 +234,7 @@ export const resolvers = {
                 throw new Error('Document must be published to create delete requests');
             }
 
-            const deleteRequest = await documentService.createDeleteRequest(documentId, email);
+            const deleteRequest = await documentService.createDeleteRequest(doc.id, email);
             return {
                 id: deleteRequest.id,
                 documentId: deleteRequest.document_id,

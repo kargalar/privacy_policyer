@@ -60,7 +60,7 @@ function App() {
                         />
 
                         <Route
-                            path="/documents/:id/delete-request"
+                            path="/documents/:appName/delete-request"
                             element={
                                 <DeleteRequestPage />
                             }
