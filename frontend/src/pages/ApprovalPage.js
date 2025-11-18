@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -18,7 +18,6 @@ import {
 const ApprovalPage = () => {
     const navigate = useNavigate();
     const { isAuthenticated, user, logout } = useAuth();
-    const [confirmingUserId, setConfirmingUserId] = useState(null);
 
     const { data: usersData, loading, refetch } = useQuery(PENDING_USERS_QUERY, {
         skip: !isAuthenticated,
@@ -29,7 +28,6 @@ const ApprovalPage = () => {
         {
             onCompleted: () => {
                 refetch();
-                setConfirmingUserId(null);
             },
             onError: (error) => {
                 console.error('Error approving user:', error);
@@ -43,7 +41,6 @@ const ApprovalPage = () => {
         {
             onCompleted: () => {
                 refetch();
-                setConfirmingUserId(null);
             },
             onError: (error) => {
                 console.error('Error rejecting user:', error);

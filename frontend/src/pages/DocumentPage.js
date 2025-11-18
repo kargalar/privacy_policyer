@@ -3,7 +3,6 @@ import { useQuery, useMutation } from '@apollo/client';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     GET_DOCUMENT_QUERY,
-    APPROVE_DOCUMENT_MUTATION,
     PUBLISH_DOCUMENT_MUTATION,
     UNPUBLISH_DOCUMENT_MUTATION,
     DELETE_DOCUMENT_MUTATION,
@@ -54,18 +53,6 @@ const DocumentPage = () => {
         }
     }, [documentData, stopPolling]);
 
-    const [approveDocument, { loading: approving }] = useMutation(
-        APPROVE_DOCUMENT_MUTATION,
-        {
-            onCompleted: () => {
-                alert('Document approved!');
-            },
-            onError: (error) => {
-                alert('Error: ' + error.message);
-            },
-        }
-    );
-
     const [publishDocument, { loading: publishing }] = useMutation(
         PUBLISH_DOCUMENT_MUTATION,
         {
@@ -103,7 +90,7 @@ const DocumentPage = () => {
         }
     );
 
-    const [updateDocumentMutation, { loading: updating }] = useMutation(
+    const [updateDocumentMutation] = useMutation(
         UPDATE_DOCUMENT_MUTATION,
         {
             onCompleted: () => {
@@ -170,12 +157,6 @@ const DocumentPage = () => {
             </div>
         );
     }
-
-    const handleApprove = () => {
-        if (window.confirm('Are you sure you want to approve this document?')) {
-            approveDocument({ variables: { documentId: id } });
-        }
-    };
 
     const handlePublish = () => {
         if (window.confirm('Are you sure you want to publish this document?')) {
