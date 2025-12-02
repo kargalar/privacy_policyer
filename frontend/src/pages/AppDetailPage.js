@@ -10,6 +10,8 @@ import {
     UPDATE_DOCUMENT_MUTATION,
     GENERATE_APP_IMAGE_MUTATION,
     DELETE_APP_IMAGE_MUTATION,
+    GET_DOCUMENT_USAGE,
+    GENERATE_APP_DESCRIPTION_MUTATION,
 } from '../graphql/queries';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -33,6 +35,10 @@ import {
     Sparkles,
     RefreshCw,
     Upload,
+    DollarSign,
+    TrendingUp,
+    Calendar,
+    Type,
 } from 'lucide-react';
 
 // Style options with preview images and descriptions
@@ -57,6 +63,9 @@ const STYLE_OPTIONS = [
     { id: 'watercolor', name: 'Watercolor', color: 'from-pink-300 to-rose-400', emoji: '🐦' },
 ];
 
+// Image count options
+const IMAGE_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6];
+
 const AppDetailPage = () => {
     const { id, tab: urlTab } = useParams();
     const navigate = useNavigate();
@@ -74,12 +83,21 @@ const AppDetailPage = () => {
 
     // Image generation state
     const [imageType, setImageType] = useState('APP_ICON');
-    const [imageStyle, setImageStyle] = useState('origami'); // Default style
+    const [selectedStyles, setSelectedStyles] = useState(['origami']); // Multiple styles can be selected
     const [imagePrompt, setImagePrompt] = useState('');
     const [referenceImages, setReferenceImages] = useState([]);
     const [generatingCount, setGeneratingCount] = useState(0); // Track number of images being generated
     const [transparentBackground, setTransparentBackground] = useState(false); // For app icons
-    const [showAllStyles, setShowAllStyles] = useState(false); // For expanding style grid
+    const [includeText, setIncludeText] = useState(false); // Include text in generated images
+    const [includeAppName, setIncludeAppName] = useState(true); // Include app name in feature graphics
+    const [lightboxImage, setLightboxImage] = useState(null); // For viewing images in lightbox
+    const [isDragging, setIsDragging] = useState(false); // For drag and drop
+    const [imageFilter, setImageFilter] = useState('ALL'); // Filter for generated images: ALL, APP_ICON, FEATURE_GRAPHIC, STORE_SCREENSHOT
+    // Description generation state
+    const [descriptionPrompt, setDescriptionPrompt] = useState('');
+    const [generatedShortDesc, setGeneratedShortDesc] = useState('');
+    const [generatedLongDesc, setGeneratedLongDesc] = useState('');
+    const [imageCount, setImageCount] = useState(1); // Number of images to generate
 
     const { data: documentData, loading, refetch, stopPolling } = useQuery(GET_DOCUMENT_QUERY, {
         variables: { id },
@@ -94,6 +112,12 @@ const AppDetailPage = () => {
         fetchPolicy: 'cache-and-network',
     });
 
+    const { data: usageData, loading: usageLoading, refetch: refetchUsage } = useQuery(GET_DOCUMENT_USAGE, {
+        variables: { documentId: id },
+        skip: !isAuthenticated,
+        fetchPolicy: 'cache-and-network',
+    });
+
     useEffect(() => {
         if (documentData?.document?.privacyPolicy && documentData?.document?.termsOfService) {
             stopPolling();
@@ -101,10 +125,20 @@ const AppDetailPage = () => {
     }, [documentData, stopPolling]);
 
     useEffect(() => {
-        if (urlTab && ['documents', 'images'].includes(urlTab)) {
+        if (urlTab && ['documents', 'description', 'images', 'usage'].includes(urlTab)) {
             setMainTab(urlTab);
         }
     }, [urlTab]);
+
+    // Load saved descriptions from database
+    useEffect(() => {
+        if (documentData?.document?.shortDescription && !generatedShortDesc) {
+            setGeneratedShortDesc(documentData.document.shortDescription);
+        }
+        if (documentData?.document?.longDescription && !generatedLongDesc) {
+            setGeneratedLongDesc(documentData.document.longDescription);
+        }
+    }, [documentData]);
 
     const [publishDocument, { loading: publishing }] = useMutation(PUBLISH_DOCUMENT_MUTATION, {
         onCompleted: () => alert('Document published!'),
@@ -134,13 +168,15 @@ const AppDetailPage = () => {
     });
 
     const [generateAppImageMutation] = useMutation(GENERATE_APP_IMAGE_MUTATION, {
-        onCompleted: () => {
-            setGeneratingCount(prev => Math.max(0, prev - 1));
+        onCompleted: (data) => {
+            // data.generateAppImage is now an array
+            const generatedImages = data?.generateAppImage || [];
+            setGeneratingCount(prev => Math.max(0, prev - generatedImages.length));
             refetchImages();
             // No alert - silently complete
         },
         onError: (error) => {
-            setGeneratingCount(prev => Math.max(0, prev - 1));
+            setGeneratingCount(prev => Math.max(0, prev - imageCount));
             let errorMessage = error.message;
             if (error.message.includes('request entity too large') || error.message.includes('PayloadTooLarge')) {
                 errorMessage = 'Reference images are too large. Please use smaller images (max 5MB each).';
@@ -157,6 +193,16 @@ const AppDetailPage = () => {
             alert('Image deleted!');
         },
         onError: (error) => alert('Error: ' + error.message),
+    });
+
+    const [generateDescriptionMutation, { loading: generatingDescription }] = useMutation(GENERATE_APP_DESCRIPTION_MUTATION, {
+        onCompleted: (data) => {
+            setGeneratedShortDesc(data.generateAppDescription.shortDescription);
+            setGeneratedLongDesc(data.generateAppDescription.longDescription);
+        },
+        onError: (error) => {
+            alert('Error generating description: ' + error.message);
+        },
     });
 
     if (!isAuthenticated) {
@@ -248,25 +294,44 @@ const AppDetailPage = () => {
     };
 
     const handleGenerateImage = () => {
+        // Check if description is generated
+        if (!generatedShortDesc || !generatedLongDesc) {
+            alert('Please generate app description first. Go to Description tab to create your app description.');
+            return;
+        }
+        
+        // Check if at least one style is selected
+        if (selectedStyles.length === 0) {
+            alert('Please select at least one style.');
+            return;
+        }
+        
         // Store Screenshot requires at least 1 reference image (app screenshot)
         if (imageType === 'STORE_SCREENSHOT' && referenceImages.length === 0) {
             alert('Store Screenshot requires at least 1 app screenshot. Please upload your app screenshot first.');
             return;
         }
 
-        setGeneratingCount(prev => prev + 1);
+        // Calculate total images: styles × count
+        const totalImages = selectedStyles.length * imageCount;
+        setGeneratingCount(prev => prev + totalImages);
+        
+        // Generate images for all selected styles in one request
         generateAppImageMutation({
             variables: {
                 documentId: id,
                 imageType,
-                style: imageStyle,
+                styles: selectedStyles,
                 prompt: imagePrompt,
                 referenceImages: referenceImages.length > 0 ? referenceImages : null,
                 transparentBackground: imageType === 'APP_ICON' ? transparentBackground : false,
+                count: imageCount,
+                includeText: includeText,
+                includeAppName: imageType === 'FEATURE_GRAPHIC' ? includeAppName : false,
             },
         });
-        // Clear prompt and references after starting generation
-        setImagePrompt('');
+        
+        // Clear only references after starting generation, keep prompt
         setReferenceImages([]);
     };
 
@@ -335,6 +400,51 @@ const AppDetailPage = () => {
 
     const removeReferenceImage = (index) => {
         setReferenceImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    // Drag and drop handlers
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = async (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        
+        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+        if (files.length === 0) return;
+        
+        const maxImages = 3;
+        const maxSizePerImage = 5 * 1024 * 1024;
+        
+        for (const file of files.slice(0, maxImages - referenceImages.length)) {
+            if (file.size > maxSizePerImage) {
+                try {
+                    const compressedImage = await compressImage(file, 1024, 0.7);
+                    setReferenceImages(prev => {
+                        if (prev.length >= maxImages) return prev;
+                        return [...prev, compressedImage];
+                    });
+                } catch (error) {
+                    alert(`Image "${file.name}" is too large and could not be compressed.`);
+                }
+            } else {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    setReferenceImages(prev => {
+                        if (prev.length >= maxImages) return prev;
+                        return [...prev, event.target.result];
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        }
     };
 
     const handleDeleteImage = (imageId) => {
@@ -424,56 +534,19 @@ const AppDetailPage = () => {
                 </div>
             </nav>
 
-            {/* Header */}
-            <header className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 py-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <button
-                                onClick={() => navigate('/apps')}
-                                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-3"
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-                                Back to Apps
-                            </button>
-                            <div className="flex items-center gap-3">
-                                <Smartphone className="w-8 h-8 text-indigo-600" />
-                                <div>
-                                    <h1 className="text-3xl font-bold text-gray-900">{document.appName}</h1>
-                                    <p className="text-gray-600 mt-1">
-                                        Created: {new Date(document.createdAt).toLocaleDateString('en-US')}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+            {/* Page Title */}
+            <title>{document.appName} - App Manager</title>
 
-                        <div className="flex items-center gap-2">
-                            {document.status === 'DRAFT' && (
-                                <span className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium">Draft</span>
-                            )}
-                            {document.status === 'APPROVED' && (
-                                <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg font-medium flex items-center gap-2">
-                                    <CheckCircle className="w-4 h-4" />
-                                    Approved
-                                </span>
-                            )}
-                            {document.status === 'PUBLISHED' && (
-                                <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium flex items-center gap-2">
-                                    <Globe className="w-4 h-4" />
-                                    Published
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Main Tab Navigation */}
-                    <div className="mt-6 flex gap-4 border-b border-gray-200">
+            {/* Tab Navigation */}
+            <div className="bg-white shadow">
+                <div className="max-w-7xl mx-auto px-4">
+                    <div className="flex gap-4 border-b border-gray-200">
                         <button
                             onClick={() => {
                                 setMainTab('documents');
                                 navigate(`/apps/${id}/documents`);
                             }}
-                            className={`px-6 py-3 font-medium border-b-2 transition flex items-center gap-2 ${mainTab === 'documents'
+                            className={`px-6 py-4 font-medium border-b-2 transition flex items-center gap-2 ${mainTab === 'documents'
                                 ? 'border-indigo-600 text-indigo-600'
                                 : 'border-transparent text-gray-600 hover:text-gray-900'
                                 }`}
@@ -483,10 +556,28 @@ const AppDetailPage = () => {
                         </button>
                         <button
                             onClick={() => {
+                                setMainTab('description');
+                                navigate(`/apps/${id}/description`);
+                            }}
+                            className={`px-6 py-4 font-medium border-b-2 transition flex items-center gap-2 ${mainTab === 'description'
+                                ? 'border-indigo-600 text-indigo-600'
+                                : 'border-transparent text-gray-600 hover:text-gray-900'
+                                }`}
+                        >
+                            <Type className="w-4 h-4" />
+                            Description
+                            {generatedShortDesc && (
+                                <span className="ml-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">
+                                    ✓
+                                </span>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => {
                                 setMainTab('images');
                                 navigate(`/apps/${id}/images`);
                             }}
-                            className={`px-6 py-3 font-medium border-b-2 transition flex items-center gap-2 ${mainTab === 'images'
+                            className={`px-6 py-4 font-medium border-b-2 transition flex items-center gap-2 ${mainTab === 'images'
                                 ? 'border-indigo-600 text-indigo-600'
                                 : 'border-transparent text-gray-600 hover:text-gray-900'
                                 }`}
@@ -499,9 +590,27 @@ const AppDetailPage = () => {
                                 </span>
                             )}
                         </button>
+                        <button
+                            onClick={() => {
+                                setMainTab('usage');
+                                navigate(`/apps/${id}/usage`);
+                            }}
+                            className={`px-6 py-4 font-medium border-b-2 transition flex items-center gap-2 ${mainTab === 'usage'
+                                ? 'border-indigo-600 text-indigo-600'
+                                : 'border-transparent text-gray-600 hover:text-gray-900'
+                                }`}
+                        >
+                            <DollarSign className="w-4 h-4" />
+                            Usage
+                            {usageData?.documentUsage?.totalCost > 0 && (
+                                <span className="ml-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">
+                                    ${usageData.documentUsage.totalCost.toFixed(2)}
+                                </span>
+                            )}
+                        </button>
                     </div>
                 </div>
-            </header>
+            </div>
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 py-8">
@@ -787,7 +896,8 @@ const AppDetailPage = () => {
                                 Use Gemini AI to generate app icons, feature graphics, and store screenshots for your app.
                             </p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                            {/* Image Type & Additional Details Row */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                 {/* Image Type */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Image Type</label>
@@ -820,25 +930,8 @@ const AppDetailPage = () => {
                                     )}
                                 </div>
 
-                                {/* Style */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Style</label>
-                                    <select
-                                        value={imageStyle}
-                                        onChange={(e) => setImageStyle(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                                    >
-                                        <option value="modern">Modern & Clean</option>
-                                        <option value="minimalist">Minimalist</option>
-                                        <option value="colorful">Colorful & Vibrant</option>
-                                        <option value="professional">Professional</option>
-                                        <option value="playful">Playful & Fun</option>
-                                        <option value="elegant">Elegant & Luxury</option>
-                                    </select>
-                                </div>
-
                                 {/* Custom Prompt */}
-                                <div className="lg:col-span-2">
+                                <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details (Optional)</label>
                                     <input
                                         type="text"
@@ -850,7 +943,92 @@ const AppDetailPage = () => {
                                 </div>
                             </div>
 
-                            {/* Reference Images Upload */}
+                            {/* Style Selection Grid - Multiple Selection */}
+                            <div className="mb-6">
+                                <div className="flex items-center justify-between mb-3">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Select Styles <span className="text-gray-400">(multiple allowed)</span>
+                                    </label>
+                                    {selectedStyles.length > 0 && (
+                                        <span className="text-xs text-purple-600 font-medium">
+                                            {selectedStyles.length} selected
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-9 gap-3">
+                                    {STYLE_OPTIONS.map((style) => {
+                                        const isSelected = selectedStyles.includes(style.id);
+                                        return (
+                                            <button
+                                                key={style.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        // Remove if already selected (but keep at least one)
+                                                        if (selectedStyles.length > 1) {
+                                                            setSelectedStyles(prev => prev.filter(s => s !== style.id));
+                                                        }
+                                                    } else {
+                                                        // Add to selection
+                                                        setSelectedStyles(prev => [...prev, style.id]);
+                                                    }
+                                                }}
+                                                className={`relative group flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${
+                                                    isSelected
+                                                        ? 'ring-2 ring-pink-500 ring-offset-2 bg-white shadow-lg scale-105'
+                                                        : 'bg-white hover:shadow-md hover:scale-102 border border-gray-200'
+                                                }`}
+                                            >
+                                                {/* Style Preview */}
+                                                <div className={`w-14 h-14 rounded-lg bg-gradient-to-br ${style.color} flex items-center justify-center text-2xl mb-1.5 shadow-sm`}>
+                                                    {style.emoji}
+                                                </div>
+                                                {/* Style Name */}
+                                                <span className={`text-xs font-medium ${
+                                                    isSelected ? 'text-pink-600' : 'text-gray-700'
+                                                }`}>
+                                                    {style.name}
+                                                </span>
+                                                {/* Selection Indicator */}
+                                                {isSelected && (
+                                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                                                        <Check className="w-3 h-3 text-white" />
+                                                    </div>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Image Options */}
+                            <div className="mb-6 flex flex-wrap gap-6">
+                                {/* Include Text Toggle */}
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={includeText}
+                                        onChange={(e) => setIncludeText(e.target.checked)}
+                                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                    />
+                                    <span className="text-sm text-gray-700">Include text in image</span>
+                                </label>
+
+                                {/* Include App Name Toggle (Feature Graphic only) */}
+                                {imageType === 'FEATURE_GRAPHIC' && (
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={includeAppName}
+                                            onChange={(e) => setIncludeAppName(e.target.checked)}
+                                            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                        />
+                                        <span className="text-sm text-gray-700">Include app name</span>
+                                    </label>
+                                )}
+                            </div>
+
+                            {/* Reference Images Upload with Drag & Drop */}
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     {imageType === 'STORE_SCREENSHOT' ? (
@@ -862,7 +1040,7 @@ const AppDetailPage = () => {
                                 <p className="text-xs text-gray-500 mb-2">
                                     {imageType === 'STORE_SCREENSHOT' 
                                         ? 'Upload your app screenshots. The AI will create a beautiful store listing image featuring your app.'
-                                        : 'Upload images to use as style reference, background inspiration, or design elements.'}
+                                        : 'Upload images to use as style reference, background inspiration, or design elements. Drag & drop or click to upload.'}
                                 </p>
                                 {imageType === 'STORE_SCREENSHOT' && referenceImages.length === 0 && (
                                     <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
@@ -870,7 +1048,16 @@ const AppDetailPage = () => {
                                         <span className="text-sm text-amber-700">Please upload at least 1 app screenshot to generate a store image.</span>
                                     </div>
                                 )}
-                                <div className="flex flex-wrap gap-3 items-center">
+                                <div 
+                                    className={`flex flex-wrap gap-3 items-center p-4 rounded-lg border-2 border-dashed transition ${
+                                        isDragging 
+                                            ? 'border-purple-500 bg-purple-50' 
+                                            : 'border-gray-300 bg-gray-50'
+                                    }`}
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                >
                                     {referenceImages.map((img, index) => (
                                         <div key={index} className="relative group">
                                             <img
@@ -880,14 +1067,14 @@ const AppDetailPage = () => {
                                             />
                                             <button
                                                 onClick={() => removeReferenceImage(index)}
-                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
                                             >
                                                 <X className="w-3 h-3" />
                                             </button>
                                         </div>
                                     ))}
                                     {referenceImages.length < 3 && (
-                                        <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition">
+                                        <label className="w-20 h-20 border-2 border-dashed border-gray-400 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-purple-500 hover:bg-purple-100 transition bg-white">
                                             <Upload className="w-5 h-5 text-gray-400" />
                                             <span className="text-xs text-gray-400 mt-1">Add</span>
                                             <input
@@ -899,21 +1086,57 @@ const AppDetailPage = () => {
                                             />
                                         </label>
                                     )}
+                                    {referenceImages.length === 0 && (
+                                        <span className="text-sm text-gray-500 ml-2">
+                                            {isDragging ? 'Drop images here...' : 'Drag & drop images here or click the + button'}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
-                            <button
-                                onClick={handleGenerateImage}
-                                className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition flex items-center gap-2"
-                            >
-                                <Sparkles className="w-4 h-4" />
-                                Generate Image
-                            </button>
+                            {/* Generate Button with Count Selection */}
+                            <div className="flex items-center gap-4">
+                                {/* Image Count Selection */}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-gray-600">Per style:</span>
+                                    <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                                        {IMAGE_COUNT_OPTIONS.map((count) => (
+                                            <button
+                                                key={count}
+                                                type="button"
+                                                onClick={() => setImageCount(count)}
+                                                className={`px-4 py-2 text-sm font-medium transition ${
+                                                    imageCount === count
+                                                        ? 'bg-purple-600 text-white'
+                                                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                                                } ${count !== IMAGE_COUNT_OPTIONS[IMAGE_COUNT_OPTIONS.length - 1] ? 'border-r border-gray-300' : ''}`}
+                                            >
+                                                {count}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={handleGenerateImage}
+                                    disabled={selectedStyles.length === 0}
+                                    className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Sparkles className="w-4 h-4" />
+                                    Generate {selectedStyles.length * imageCount} Image{selectedStyles.length * imageCount > 1 ? 's' : ''}
+                                </button>
+                            </div>
+
+                            {/* Cost estimate */}
+                            <p className="text-xs text-gray-400 mt-2">
+                                {selectedStyles.length} style{selectedStyles.length > 1 ? 's' : ''} × {imageCount} image{imageCount > 1 ? 's' : ''} = {selectedStyles.length * imageCount} total | 
+                                Estimated cost: ~${(selectedStyles.length * imageCount * 0.02).toFixed(2)} USD
+                            </p>
                         </div>
 
                         {/* Generated Images */}
                         <div className="bg-white rounded-lg shadow-md p-6">
-                            <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
                                     <Image className="w-5 h-5 text-indigo-600" />
                                     Generated Images
@@ -925,6 +1148,35 @@ const AppDetailPage = () => {
                                     <RefreshCw className="w-4 h-4" />
                                     Refresh
                                 </button>
+                            </div>
+
+                            {/* Image Type Filter */}
+                            <div className="flex gap-2 mb-6">
+                                {[
+                                    { id: 'ALL', label: 'All', count: appImages.length },
+                                    { id: 'APP_ICON', label: 'Icons', count: appImages.filter(i => i.imageType === 'APP_ICON').length },
+                                    { id: 'FEATURE_GRAPHIC', label: 'Feature', count: appImages.filter(i => i.imageType === 'FEATURE_GRAPHIC').length },
+                                    { id: 'STORE_SCREENSHOT', label: 'Screenshots', count: appImages.filter(i => i.imageType === 'STORE_SCREENSHOT').length },
+                                ].map((filter) => (
+                                    <button
+                                        key={filter.id}
+                                        onClick={() => setImageFilter(filter.id)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                                            imageFilter === filter.id
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        {filter.label}
+                                        <span className={`px-2 py-0.5 rounded-full text-xs ${
+                                            imageFilter === filter.id
+                                                ? 'bg-indigo-500 text-white'
+                                                : 'bg-gray-200 text-gray-600'
+                                        }`}>
+                                            {filter.count}
+                                        </span>
+                                    </button>
+                                ))}
                             </div>
 
                             {imagesLoading ? (
@@ -956,36 +1208,51 @@ const AppDetailPage = () => {
                                             </div>
                                         </div>
                                     ))}
-                                    {appImages.map((image) => (
-                                        <div key={image.id} className="border border-gray-200 rounded-lg overflow-hidden group">
-                                            <div className="aspect-square bg-gray-100 relative">
+                                    {appImages
+                                        .filter(image => imageFilter === 'ALL' || image.imageType === imageFilter)
+                                        .map((image) => (
+                                        <div key={image.id} className="border border-gray-200 rounded-lg overflow-hidden relative">
+                                            {/* Action buttons - always visible, top right */}
+                                            <div className="absolute top-2 right-2 z-10 flex gap-1">
+                                                <button
+                                                    onClick={() => handleDownloadImage(image.cloudinaryUrl, `${document.appName}-${image.imageType}.png`)}
+                                                    className="p-2 bg-white/90 rounded-lg hover:bg-white shadow-sm transition"
+                                                    title="Download"
+                                                >
+                                                    <Download className="w-4 h-4 text-gray-700" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteImage(image.id)}
+                                                    className="p-2 bg-white/90 rounded-lg hover:bg-red-50 shadow-sm transition"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                                </button>
+                                            </div>
+                                            
+                                            {/* Clickable image area */}
+                                            <div 
+                                                className="aspect-square bg-gray-100 cursor-pointer"
+                                                onClick={() => setLightboxImage(image.cloudinaryUrl)}
+                                            >
                                                 <img
                                                     src={image.cloudinaryUrl}
                                                     alt={getImageTypeLabel(image.imageType)}
                                                     className="w-full h-full object-contain"
                                                 />
-                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                                                    <button
-                                                        onClick={() => handleDownloadImage(image.cloudinaryUrl, `${document.appName}-${image.imageType}.png`)}
-                                                        className="p-2 bg-white rounded-lg hover:bg-gray-100 transition"
-                                                        title="Download"
-                                                    >
-                                                        <Download className="w-5 h-5 text-gray-700" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteImage(image.id)}
-                                                        className="p-2 bg-white rounded-lg hover:bg-red-50 transition"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 className="w-5 h-5 text-red-600" />
-                                                    </button>
-                                                </div>
                                             </div>
                                             <div className="p-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
-                                                        {getImageTypeLabel(image.imageType)}
-                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
+                                                            {getImageTypeLabel(image.imageType)}
+                                                        </span>
+                                                        {image.style && (
+                                                            <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium capitalize">
+                                                                {image.style}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <span className="text-xs text-gray-500">
                                                         {image.width}x{image.height}
                                                     </span>
@@ -1005,6 +1272,132 @@ const AppDetailPage = () => {
                             )}
                         </div>
                     </>
+                )}
+
+                {/* DESCRIPTION TAB */}
+                {mainTab === 'description' && (
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Type className="w-5 h-5 text-indigo-600" />
+                            <h2 className="text-xl font-semibold text-gray-900">Generate App Store Descriptions</h2>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-6">
+                            Generate compelling app store descriptions with AI. Get a short tagline (80 chars) and a full description (~2000 chars).
+                            <span className="block mt-2 text-indigo-600 font-medium">
+                                ⚡ Required before generating images
+                            </span>
+                        </p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Describe your app features and target audience
+                                </label>
+                                <textarea
+                                    value={descriptionPrompt}
+                                    onChange={(e) => setDescriptionPrompt(e.target.value)}
+                                    placeholder="E.g., A fitness tracking app for beginners with step counting, workout videos, and meal planning. Target users who want to start a healthy lifestyle..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                                    rows={3}
+                                />
+                            </div>
+
+                            <button
+                                onClick={() => generateDescriptionMutation({
+                                    variables: { documentId: id, prompt: descriptionPrompt || document.appName }
+                                })}
+                                disabled={generatingDescription}
+                                className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {generatingDescription ? (
+                                    <>
+                                        <Loader className="w-4 h-4 animate-spin" />
+                                        Generating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-4 h-4" />
+                                        Generate Descriptions
+                                    </>
+                                )}
+                            </button>
+
+                            {/* Generated Descriptions */}
+                            {(generatedShortDesc || generatedLongDesc) && (
+                                <div className="mt-6 space-y-4">
+                                    {/* Short Description */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Short Description <span className="text-gray-400">(max 80 chars)</span>
+                                            </label>
+                                            <span className={`text-xs ${generatedShortDesc.length > 80 ? 'text-red-500' : 'text-gray-500'}`}>
+                                                {generatedShortDesc.length}/80
+                                            </span>
+                                        </div>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={generatedShortDesc}
+                                                onChange={(e) => setGeneratedShortDesc(e.target.value)}
+                                                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                maxLength={80}
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(generatedShortDesc);
+                                                    alert('Short description copied!');
+                                                }}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                                                title="Copy"
+                                            >
+                                                <Copy className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Long Description */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Long Description <span className="text-gray-400">(~2000 chars)</span>
+                                            </label>
+                                            <span className={`text-xs ${generatedLongDesc.length > 4000 ? 'text-red-500' : 'text-gray-500'}`}>
+                                                {generatedLongDesc.length}/4000
+                                            </span>
+                                        </div>
+                                        <div className="relative">
+                                            <textarea
+                                                value={generatedLongDesc}
+                                                onChange={(e) => setGeneratedLongDesc(e.target.value)}
+                                                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                                                rows={10}
+                                                maxLength={4000}
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(generatedLongDesc);
+                                                    alert('Long description copied!');
+                                                }}
+                                                className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600"
+                                                title="Copy"
+                                            >
+                                                <Copy className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Success message */}
+                                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                        <p className="text-green-800 text-sm flex items-center gap-2">
+                                            <CheckCircle className="w-4 h-4" />
+                                            Descriptions generated! You can now go to Images tab to generate store assets.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 )}
 
                 {/* Edit Modal */}
@@ -1079,7 +1472,184 @@ const AppDetailPage = () => {
                         </div>
                     </div>
                 )}
+
+                {/* USAGE TAB */}
+                {mainTab === 'usage' && (
+                    <div className="space-y-6">
+                        {/* Usage Summary */}
+                        <div className="bg-white rounded-lg shadow-md p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                                    <TrendingUp className="w-5 h-5 text-green-600" />
+                                    API Usage Summary
+                                </h2>
+                                <button
+                                    onClick={() => refetchUsage()}
+                                    className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+                                >
+                                    <RefreshCw className="w-4 h-4" />
+                                    Refresh
+                                </button>
+                            </div>
+
+                            {usageLoading ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader className="w-8 h-8 animate-spin text-indigo-600" />
+                                </div>
+                            ) : usageData?.documentUsage ? (
+                                <>
+                                    {/* Stats Cards */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                        <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-6 border border-green-200">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="p-2 bg-green-500 rounded-lg">
+                                                    <DollarSign className="w-5 h-5 text-white" />
+                                                </div>
+                                                <span className="text-green-700 font-medium">Total Cost</span>
+                                            </div>
+                                            <p className="text-3xl font-bold text-green-800">
+                                                ${usageData.documentUsage.totalCost.toFixed(4)}
+                                            </p>
+                                            <p className="text-sm text-green-600 mt-1">USD</p>
+                                        </div>
+
+                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-6 border border-blue-200">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="p-2 bg-blue-500 rounded-lg">
+                                                    <TrendingUp className="w-5 h-5 text-white" />
+                                                </div>
+                                                <span className="text-blue-700 font-medium">Total Requests</span>
+                                            </div>
+                                            <p className="text-3xl font-bold text-blue-800">
+                                                {usageData.documentUsage.totalRequests}
+                                            </p>
+                                            <p className="text-sm text-blue-600 mt-1">API calls</p>
+                                        </div>
+
+                                        <div className="bg-gradient-to-br from-purple-50 to-violet-100 rounded-xl p-6 border border-purple-200">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="p-2 bg-purple-500 rounded-lg">
+                                                    <Sparkles className="w-5 h-5 text-white" />
+                                                </div>
+                                                <span className="text-purple-700 font-medium">Avg Cost/Request</span>
+                                            </div>
+                                            <p className="text-3xl font-bold text-purple-800">
+                                                ${usageData.documentUsage.totalRequests > 0 
+                                                    ? (usageData.documentUsage.totalCost / usageData.documentUsage.totalRequests).toFixed(4)
+                                                    : '0.0000'}
+                                            </p>
+                                            <p className="text-sm text-purple-600 mt-1">USD per request</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Usage History */}
+                                    {usageData.documentUsage.history.length > 0 ? (
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                                <Calendar className="w-5 h-5 text-gray-600" />
+                                                Usage History
+                                            </h3>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full">
+                                                    <thead className="bg-gray-50">
+                                                        <tr>
+                                                            <th className="text-left py-3 px-4 text-gray-600 font-medium text-sm">Type</th>
+                                                            <th className="text-left py-3 px-4 text-gray-600 font-medium text-sm">Model</th>
+                                                            <th className="text-left py-3 px-4 text-gray-600 font-medium text-sm">Tokens</th>
+                                                            <th className="text-left py-3 px-4 text-gray-600 font-medium text-sm">Cost</th>
+                                                            <th className="text-left py-3 px-4 text-gray-600 font-medium text-sm">Date</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-100">
+                                                        {usageData.documentUsage.history.map((item, index) => (
+                                                            <tr key={index} className="hover:bg-gray-50">
+                                                                <td className="py-3 px-4">
+                                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                                                        item.usageType === 'IMAGE_GENERATION'
+                                                                            ? 'bg-purple-100 text-purple-700'
+                                                                            : 'bg-blue-100 text-blue-700'
+                                                                    }`}>
+                                                                        {item.usageType === 'IMAGE_GENERATION' ? 'Image' : 'Document'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-3 px-4 text-gray-600 text-sm font-mono">
+                                                                    {item.modelName}
+                                                                </td>
+                                                                <td className="py-3 px-4 text-gray-600 text-sm">
+                                                                    {item.inputTokens || 0} in / {item.outputTokens || 0} out
+                                                                </td>
+                                                                <td className="py-3 px-4 text-green-600 font-medium">
+                                                                    ${item.cost.toFixed(4)}
+                                                                </td>
+                                                                <td className="py-3 px-4 text-gray-500 text-sm">
+                                                                    {new Date(item.createdAt).toLocaleString()}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8">
+                                            <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                            <p className="text-gray-500">No API usage recorded yet</p>
+                                            <p className="text-sm text-gray-400 mt-1">Generate documents or images to see usage stats</p>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Usage Data</h3>
+                                    <p className="text-gray-600">Start generating documents or images to track API usage.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Pricing Info */}
+                        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg p-6">
+                            <h3 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
+                                <AlertCircle className="w-5 h-5" />
+                                Pricing Information
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div className="bg-white/50 rounded-lg p-4">
+                                    <p className="font-medium text-amber-800 mb-2">Document Generation</p>
+                                    <p className="text-amber-700">Model: gemini-2.5-flash</p>
+                                    <p className="text-amber-600">~$0.001 per document</p>
+                                </div>
+                                <div className="bg-white/50 rounded-lg p-4">
+                                    <p className="font-medium text-amber-800 mb-2">Image Generation</p>
+                                    <p className="text-amber-700">Model: gemini-3-pro-image-preview</p>
+                                    <p className="text-amber-600">~$0.02 per image</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
+
+            {/* Image Lightbox Modal */}
+            {lightboxImage && (
+                <div 
+                    className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
+                    onClick={() => setLightboxImage(null)}
+                >
+                    <button
+                        onClick={() => setLightboxImage(null)}
+                        className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition"
+                    >
+                        <X className="w-6 h-6 text-white" />
+                    </button>
+                    <img
+                        src={lightboxImage}
+                        alt="Full size preview"
+                        className="max-w-full max-h-full object-contain"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
         </div>
     );
 };

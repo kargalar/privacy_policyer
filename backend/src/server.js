@@ -95,6 +95,47 @@ const initDatabase = async () => {
     `);
     console.log('✓ Delete Requests table created');
 
+    // App Images table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS app_images (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        image_type VARCHAR(50) NOT NULL,
+        prompt TEXT,
+        cloudinary_url TEXT NOT NULL,
+        cloudinary_id VARCHAR(255) NOT NULL,
+        width INT,
+        height INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('✓ App Images table created');
+
+    // API Usage table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS api_usage (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        document_id UUID REFERENCES documents(id) ON DELETE SET NULL,
+        usage_type VARCHAR(50) NOT NULL,
+        model_name VARCHAR(100) NOT NULL,
+        input_tokens INT DEFAULT 0,
+        output_tokens INT DEFAULT 0,
+        cost_usd DECIMAL(10, 6) DEFAULT 0,
+        metadata JSONB,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    // Create indexes for API usage
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_api_usage_user_id ON api_usage(user_id);
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_api_usage_document_id ON api_usage(document_id);
+    `);
+    console.log('✓ API Usage table created');
+
     // Create admin user
     await pool.query(`
       INSERT INTO users (email, password, username, status, updated_at)

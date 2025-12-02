@@ -49,13 +49,18 @@ export const typeDefs = `#graphql
     userId: ID!
     appName: String!
     appDescription: String
+    shortDescription: String
+    longDescription: String
     privacyPolicy: String
     termsOfService: String
     status: DocumentStatus!
+    imageCount: Int
+    totalCost: Float
     createdAt: String!
     updatedAt: String!
     deleteRequests: [DeleteRequest!]!
     appImages: [AppImage!]!
+    usageCost: Float
   }
 
   type DeleteRequest {
@@ -69,6 +74,7 @@ export const typeDefs = `#graphql
     id: ID!
     documentId: ID!
     imageType: String!
+    style: String
     prompt: String
     cloudinaryUrl: String!
     cloudinaryId: String!
@@ -80,6 +86,55 @@ export const typeDefs = `#graphql
   type AuthPayload {
     token: String!
     user: User!
+  }
+
+  type UsageByType {
+    type: String!
+    requests: Int!
+    cost: Float!
+  }
+
+  type UsageByDocument {
+    documentId: ID!
+    appName: String
+    requests: Int!
+    cost: Float!
+  }
+
+  type DailyUsage {
+    date: String!
+    requests: Int!
+    cost: Float!
+  }
+
+  type UsageStats {
+    totalRequests: Int!
+    totalInputTokens: Int!
+    totalOutputTokens: Int!
+    totalCost: Float!
+    byType: [UsageByType!]!
+    byDocument: [UsageByDocument!]!
+    dailyUsage: [DailyUsage!]!
+  }
+
+  type DocumentUsageHistory {
+    usageType: String!
+    modelName: String!
+    inputTokens: Int
+    outputTokens: Int
+    cost: Float!
+    createdAt: String!
+  }
+
+  type DocumentUsage {
+    totalCost: Float!
+    totalRequests: Int!
+    history: [DocumentUsageHistory!]!
+  }
+
+  type AppDescriptionResult {
+    shortDescription: String!
+    longDescription: String!
   }
 
   type Query {
@@ -101,6 +156,10 @@ export const typeDefs = `#graphql
     # Public Documents (no auth required)
     publicDocument(username: String!, appName: String!): Document
     
+    # API Usage
+    myUsageStats: UsageStats!
+    documentUsage(documentId: ID!): DocumentUsage!
+    
     # Admin
     pendingUsers: [User!]!
     allUsers: [User!]!
@@ -119,12 +178,15 @@ export const typeDefs = `#graphql
     unpublishDocument(documentId: ID!): Document!
     deleteDocument(documentId: ID!): Boolean!
     
-    # App Images
-    generateAppImage(documentId: ID!, imageType: String!, style: String, prompt: String, referenceImages: [String], transparentBackground: Boolean): AppImage!
+    # App Images - styles array for multi-style generation, count per style
+    generateAppImage(documentId: ID!, imageType: String!, styles: [String!], prompt: String, referenceImages: [String], transparentBackground: Boolean, count: Int, includeText: Boolean, includeAppName: Boolean): [AppImage!]!
     deleteAppImage(imageId: ID!): Boolean!
     
     # Delete Requests
     createDeleteRequest(appName: String!, email: String!): DeleteRequest!
+    
+    # App Description Generation
+    generateAppDescription(documentId: ID!, prompt: String!): AppDescriptionResult!
     
     # Admin
     approveUser(userId: ID!): User!

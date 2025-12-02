@@ -69,6 +69,8 @@ export const GET_MY_DOCUMENTS_QUERY = gql`
       id
       appName
       status
+      imageCount
+      totalCost
       createdAt
       updatedAt
     }
@@ -81,6 +83,8 @@ export const GET_DOCUMENT_QUERY = gql`
       id
       appName
       appDescription
+      shortDescription
+      longDescription
       privacyPolicy
       termsOfService
       status
@@ -201,6 +205,7 @@ export const GET_APP_IMAGES_QUERY = gql`
       id
       documentId
       imageType
+      style
       prompt
       cloudinaryUrl
       cloudinaryId
@@ -212,11 +217,12 @@ export const GET_APP_IMAGES_QUERY = gql`
 `;
 
 export const GENERATE_APP_IMAGE_MUTATION = gql`
-  mutation GenerateAppImage($documentId: ID!, $imageType: String!, $style: String, $prompt: String, $referenceImages: [String], $transparentBackground: Boolean) {
-    generateAppImage(documentId: $documentId, imageType: $imageType, style: $style, prompt: $prompt, referenceImages: $referenceImages, transparentBackground: $transparentBackground) {
+  mutation GenerateAppImage($documentId: ID!, $imageType: String!, $styles: [String!], $prompt: String, $referenceImages: [String], $transparentBackground: Boolean, $count: Int, $includeText: Boolean, $includeAppName: Boolean) {
+    generateAppImage(documentId: $documentId, imageType: $imageType, styles: $styles, prompt: $prompt, referenceImages: $referenceImages, transparentBackground: $transparentBackground, count: $count, includeText: $includeText, includeAppName: $includeAppName) {
       id
       documentId
       imageType
+      style
       prompt
       cloudinaryUrl
       cloudinaryId
@@ -230,5 +236,59 @@ export const GENERATE_APP_IMAGE_MUTATION = gql`
 export const DELETE_APP_IMAGE_MUTATION = gql`
   mutation DeleteAppImage($imageId: ID!) {
     deleteAppImage(imageId: $imageId)
+  }
+`;
+
+// API Usage Queries
+export const GET_MY_USAGE_STATS = gql`
+  query GetMyUsageStats {
+    myUsageStats {
+      totalRequests
+      totalInputTokens
+      totalOutputTokens
+      totalCost
+      byType {
+        type
+        requests
+        cost
+      }
+      byDocument {
+        documentId
+        appName
+        requests
+        cost
+      }
+      dailyUsage {
+        date
+        requests
+        cost
+      }
+    }
+  }
+`;
+
+export const GET_DOCUMENT_USAGE = gql`
+  query GetDocumentUsage($documentId: ID!) {
+    documentUsage(documentId: $documentId) {
+      totalCost
+      totalRequests
+      history {
+        usageType
+        modelName
+        inputTokens
+        outputTokens
+        cost
+        createdAt
+      }
+    }
+  }
+`;
+
+export const GENERATE_APP_DESCRIPTION_MUTATION = gql`
+  mutation GenerateAppDescription($documentId: ID!, $prompt: String!) {
+    generateAppDescription(documentId: $documentId, prompt: $prompt) {
+      shortDescription
+      longDescription
+    }
   }
 `;

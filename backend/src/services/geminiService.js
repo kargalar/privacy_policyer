@@ -91,3 +91,54 @@ export const generateDocumentWithCustomPrompt = async (prompt) => {
         throw new Error(`Failed to generate document: ${error.message}`);
     }
 };
+
+export const generateAppDescription = async (appName, prompt) => {
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const descriptionPrompt = `
+You are an expert app store copywriter. Generate compelling app descriptions for the app store based on the following details.
+
+App Name: ${appName}
+Additional Details: ${prompt}
+
+IMPORTANT REQUIREMENTS:
+1. SHORT DESCRIPTION: Exactly 80 characters or less. This is the tagline that appears under the app name. Make it catchy, clear, and action-oriented.
+2. LONG DESCRIPTION: Around 2000 characters (can be up to 4000 max). This is the full app store description. Include:
+   - A compelling opening hook
+   - Key features with bullet points (use emoji bullets ✓ or •)
+   - Benefits of using the app
+   - Call to action
+
+Return ONLY a JSON object in this exact format (no markdown, no code blocks):
+{"shortDescription": "Your 80 char description here", "longDescription": "Your ~2000 char description here"}
+`;
+
+        console.log('Generating App Description with Gemini...');
+        const response = await model.generateContent(descriptionPrompt);
+        let text = response.response.text();
+        
+        // Clean up response - remove markdown code blocks if present
+        text = text.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+        
+        const result = JSON.parse(text);
+        console.log('✓ App Description generated');
+        
+        // Validate and trim short description if needed
+        if (result.shortDescription && result.shortDescription.length > 80) {
+            result.shortDescription = result.shortDescription.substring(0, 80);
+        }
+        
+        return {
+            shortDescription: result.shortDescription || '',
+            longDescription: result.longDescription || '',
+            usageInfo: {
+                inputTokens: response.response.usageMetadata?.promptTokenCount || 0,
+                outputTokens: response.response.usageMetadata?.candidatesTokenCount || 0
+            }
+        };
+    } catch (error) {
+        console.error('Gemini API Error:', error);
+        throw new Error(`Failed to generate app description: ${error.message}`);
+    }
+};

@@ -2,6 +2,7 @@ import pool from '../utils/database.js';
 import { v4 as uuidv4 } from 'uuid';
 import { generateAndUploadImage } from './imageGenerationService.js';
 import { deleteImage } from './cloudinaryService.js';
+import { logApiUsage } from './apiUsageService.js';
 
 /**
  * Get all images for a document
@@ -10,7 +11,7 @@ import { deleteImage } from './cloudinaryService.js';
  */
 export const getImagesByDocumentId = async (documentId) => {
     const result = await pool.query(
-        `SELECT id, document_id, image_type, prompt, cloudinary_url, cloudinary_id, width, height, created_at 
+        `SELECT id, document_id, image_type, style, prompt, cloudinary_url, cloudinary_id, width, height, created_at 
          FROM app_images 
          WHERE document_id = $1 
          ORDER BY created_at DESC`,
@@ -27,7 +28,7 @@ export const getImagesByDocumentId = async (documentId) => {
  */
 export const getImageById = async (imageId) => {
     const result = await pool.query(
-        `SELECT id, document_id, image_type, prompt, cloudinary_url, cloudinary_id, width, height, created_at 
+        `SELECT id, document_id, image_type, style, prompt, cloudinary_url, cloudinary_id, width, height, created_at 
          FROM app_images 
          WHERE id = $1`,
         [imageId]
@@ -44,12 +45,15 @@ export const getImageById = async (imageId) => {
  * @param {string} prompt - Additional prompt details
  * @param {string[]} referenceImages - Base64 encoded reference images
  * @param {boolean} transparentBackground - Whether to use transparent background (for icons)
+ * @param {string} userId - User ID for API usage tracking
+ * @param {boolean} includeText - Whether to include text in the image
+ * @param {boolean} includeAppName - Whether to include app name (for feature graphics)
  * @returns {Promise<Object>}
  */
-export const createAppImage = async (documentId, imageType, style = 'modern', prompt = '', referenceImages = [], transparentBackground = false) => {
+export const createAppImage = async (documentId, imageType, style = 'origami', prompt = '', referenceImages = [], transparentBackground = false, userId = null, includeText = false, includeAppName = true) => {
     // Get document info for app name and description
     const docResult = await pool.query(
-        `SELECT app_name, app_description FROM documents WHERE id = $1`,
+        `SELECT app_name, app_description, user_id FROM documents WHERE id = $1`,
         [documentId]
     );
 
@@ -58,6 +62,7 @@ export const createAppImage = async (documentId, imageType, style = 'modern', pr
     }
 
     const document = docResult.rows[0];
+    const effectiveUserId = userId || document.user_id;
 
     // Generate and upload image
     const result = await generateAndUploadImage(
@@ -68,18 +73,45 @@ export const createAppImage = async (documentId, imageType, style = 'modern', pr
         prompt,
         documentId,
         referenceImages,
-        transparentBackground
+        transparentBackground,
+        includeText,
+        includeAppName
     );
+
+    // Log API usage
+    try {
+        await logApiUsage({
+            userId: effectiveUserId,
+            documentId,
+            usageType: 'IMAGE_GENERATION',
+            modelName: 'gemini-3-pro-image-preview',
+            inputTokens: 500, // Approximate for image generation
+            outputTokens: 0,
+            imageCount: 1,
+            metadata: {
+                imageType,
+                style,
+                transparentBackground,
+                hasReferenceImages: referenceImages.length > 0,
+                includeText,
+                includeAppName,
+            },
+        });
+    } catch (error) {
+        console.error('Failed to log API usage:', error);
+        // Don't fail the request if logging fails
+    }
 
     // Save to database
     const insertResult = await pool.query(
-        `INSERT INTO app_images (id, document_id, image_type, prompt, cloudinary_url, cloudinary_id, width, height, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
-         RETURNING id, document_id, image_type, prompt, cloudinary_url, cloudinary_id, width, height, created_at`,
+        `INSERT INTO app_images (id, document_id, image_type, style, prompt, cloudinary_url, cloudinary_id, width, height, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+         RETURNING id, document_id, image_type, style, prompt, cloudinary_url, cloudinary_id, width, height, created_at`,
         [
             uuidv4(),
             documentId,
             imageType,
+            style,
             prompt || null,
             result.url,
             result.publicId,
@@ -131,6 +163,7 @@ const formatImage = (row) => ({
     id: row.id,
     documentId: row.document_id,
     imageType: row.image_type,
+    style: row.style,
     prompt: row.prompt,
     cloudinaryUrl: row.cloudinary_url,
     cloudinaryId: row.cloudinary_id,

@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { GET_MY_DOCUMENTS_QUERY } from '../graphql/queries';
 import { useAuth } from '../context/AuthContext';
 import {
-    FileText,
     Loader,
     ArrowRight,
     Plus,
@@ -152,15 +151,14 @@ const AppsPage = () => {
                                     Created: {new Date(app.createdAt).toLocaleDateString('en-US')}
                                 </p>
 
-                                {/* Quick Actions */}
+                                {/* Stats */}
                                 <div className="flex gap-2 mb-4">
-                                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">
-                                        <FileText className="w-3 h-3" />
-                                        Documents
-                                    </span>
                                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
                                         <Image className="w-3 h-3" />
-                                        Images
+                                        {app.imageCount || 0} images
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded text-xs">
+                                        ${(app.totalCost || 0).toFixed(2)}
                                     </span>
                                 </div>
 

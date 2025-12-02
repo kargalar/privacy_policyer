@@ -2,6 +2,7 @@ import * as userService from '../services/userService.js';
 import * as questionService from '../services/questionService.js';
 import * as documentService from '../services/documentService.js';
 import * as imageService from '../services/imageService.js';
+import * as apiUsageService from '../services/apiUsageService.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 export const resolvers = {
@@ -118,6 +119,23 @@ export const resolvers = {
             }
 
             return image;
+        },
+
+        // API Usage queries
+        myUsageStats: async (_, __, context) => {
+            const user = requireAuth(context);
+            return await apiUsageService.getUserUsageStats(user.id);
+        },
+
+        documentUsage: async (_, { documentId }, context) => {
+            const user = requireAuth(context);
+            const doc = await documentService.getDocumentById(documentId);
+
+            if (!doc || doc.userId !== user.id) {
+                throw new Error('Document not found or access denied');
+            }
+
+            return await apiUsageService.getDocumentUsage(documentId);
         },
     },
 
@@ -334,7 +352,7 @@ export const resolvers = {
         },
 
         // App Image mutations
-        generateAppImage: async (_, { documentId, imageType, style, prompt, referenceImages, transparentBackground }, context) => {
+        generateAppImage: async (_, { documentId, imageType, styles, prompt, referenceImages, transparentBackground, count, includeText, includeAppName }, context) => {
             const user = requireAuth(context);
             const doc = await documentService.getDocumentById(documentId);
 
@@ -342,7 +360,29 @@ export const resolvers = {
                 throw new Error('Document not found or access denied');
             }
 
-            return await imageService.createAppImage(documentId, imageType, style || 'modern', prompt || '', referenceImages || [], transparentBackground || false);
+            // Generate images for each style, count images per style
+            const imageCount = Math.min(Math.max(count || 1, 1), 6); // Clamp between 1 and 6
+            const selectedStyles = styles && styles.length > 0 ? styles : ['origami'];
+            const results = [];
+
+            for (const style of selectedStyles) {
+                for (let i = 0; i < imageCount; i++) {
+                    const image = await imageService.createAppImage(
+                        documentId, 
+                        imageType, 
+                        style, 
+                        prompt || '', 
+                        referenceImages || [], 
+                        transparentBackground || false,
+                        user.id, // Pass userId for API usage tracking
+                        includeText || false,
+                        includeAppName !== false // Default to true for feature graphics
+                    );
+                    results.push(image);
+                }
+            }
+
+            return results;
         },
 
         deleteAppImage: async (_, { imageId }, context) => {
@@ -360,6 +400,41 @@ export const resolvers = {
             }
 
             return await imageService.deleteAppImage(imageId);
+        },
+
+        generateAppDescription: async (_, { documentId, prompt }, context) => {
+            const user = requireAuth(context);
+            const doc = await documentService.getDocumentById(documentId);
+
+            if (!doc || doc.userId !== user.id) {
+                throw new Error('Document not found or access denied');
+            }
+
+            // Import gemini service dynamically
+            const { generateAppDescription } = await import('../services/geminiService.js');
+            const result = await generateAppDescription(doc.appName, prompt);
+            
+            // Save generated descriptions to database
+            await documentService.updateDocumentDescriptions(
+                documentId, 
+                result.shortDescription, 
+                result.longDescription
+            );
+            
+            // Log API usage
+            await apiUsageService.logApiUsage({
+                userId: user.id,
+                documentId: documentId,
+                usageType: 'description_generation',
+                modelName: 'gemini-2.5-flash',
+                inputTokens: result.usageInfo.inputTokens,
+                outputTokens: result.usageInfo.outputTokens
+            });
+
+            return {
+                shortDescription: result.shortDescription,
+                longDescription: result.longDescription
+            };
         },
     },
 };

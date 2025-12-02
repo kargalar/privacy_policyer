@@ -44,10 +44,18 @@ export const createDocument = async (userId, appName, appData) => {
 export const getUserDocuments = async (userId) => {
     try {
         const result = await pool.query(
-            `SELECT id, user_id, app_name, status, created_at, updated_at 
-       FROM documents 
-       WHERE user_id = $1 
-       ORDER BY created_at DESC`,
+            `SELECT d.id, d.user_id, d.app_name, d.status, d.created_at, d.updated_at,
+                    (SELECT COUNT(*) FROM app_images WHERE document_id = d.id) as image_count,
+                    (SELECT COALESCE(SUM(
+                        CASE 
+                            WHEN usage_type = 'image_generation' THEN 0.02
+                            WHEN usage_type = 'description_generation' THEN 0.001
+                            ELSE 0
+                        END
+                    ), 0) FROM api_usage WHERE document_id = d.id) as total_cost
+             FROM documents d
+             WHERE d.user_id = $1 
+             ORDER BY d.created_at DESC`,
             [userId]
         );
 
@@ -56,6 +64,8 @@ export const getUserDocuments = async (userId) => {
             userId: row.user_id,
             appName: row.app_name,
             status: row.status,
+            imageCount: parseInt(row.image_count) || 0,
+            totalCost: parseFloat(row.total_cost) || 0,
             createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
             updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
         }));
@@ -67,7 +77,7 @@ export const getUserDocuments = async (userId) => {
 export const getDocumentById = async (documentId) => {
     try {
         const result = await pool.query(
-            `SELECT id, user_id, app_name, app_description, privacy_policy, terms_of_service, status, created_at, updated_at 
+            `SELECT id, user_id, app_name, app_description, short_description, long_description, privacy_policy, terms_of_service, status, created_at, updated_at 
        FROM documents 
        WHERE id = $1`,
             [documentId]
@@ -87,6 +97,8 @@ export const getDocumentById = async (documentId) => {
             userId: row.user_id,
             appName: row.app_name,
             appDescription: row.app_description,
+            shortDescription: row.short_description,
+            longDescription: row.long_description,
             privacyPolicy: row.privacy_policy,
             termsOfService: row.terms_of_service,
             status: row.status,
@@ -205,6 +217,27 @@ export const updateDocument = async (documentId, appName, appDescription, privac
 
         return result.rows[0];
     } catch (error) {
+        throw error;
+    }
+};
+
+export const updateDocumentDescriptions = async (documentId, shortDescription, longDescription) => {
+    try {
+        const result = await pool.query(
+            `UPDATE documents 
+       SET short_description = $1, long_description = $2, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $3 
+       RETURNING id`,
+            [shortDescription, longDescription, documentId]
+        );
+
+        if (result.rows.length === 0) {
+            throw new Error('Document not found');
+        }
+
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error updating document descriptions:', error);
         throw error;
     }
 };
