@@ -93,7 +93,7 @@ const buildContentParts = (prompt, referenceImages = [], contextText = 'Use thes
 
     if (referenceImages && referenceImages.length > 0) {
         contentParts.push({ text: contextText + '\n' });
-        
+
         for (const refImage of referenceImages) {
             const matches = refImage.match(/^data:(.+);base64,(.+)$/);
             if (matches) {
@@ -105,7 +105,7 @@ const buildContentParts = (prompt, referenceImages = [], contextText = 'Use thes
                 });
             }
         }
-        
+
         contentParts.push({ text: '\n\nNow create the image based on the above references and this prompt:\n' + prompt });
     } else {
         contentParts.push({ text: prompt });
@@ -118,17 +118,18 @@ const buildContentParts = (prompt, referenceImages = [], contextText = 'Use thes
  * Generate an app icon using Gemini 3 Pro Image model
  * @param {string} appName - Name of the application
  * @param {string} appDescription - Description of the application
- * @param {string} style - Style preference for the icon
+ * @param {string} style - Style preference for the icon (can be null for no predefined style)
  * @param {string[]} colors - Color preferences
  * @param {string} prompt - Additional prompt details
+ * @param {string} customStylePrompt - Custom style description
+ * @param {string} styleReferenceImage - Base64 encoded reference image for style extraction
  * @param {string} requiredText - Text that must appear in the image
  * @param {boolean} onlyRequiredText - Only include required text
  * @param {string[]} referenceImages - Base64 encoded reference images
- * @param {boolean} transparentBackground - Whether to use transparent background
  * @param {boolean} includeText - Whether to include text in the icon
  * @returns {Promise<{base64: string, mimeType: string}>}
  */
-export const generateAppIcon = async (appName, appDescription, style = 'origami', colors = [], prompt = '', requiredText = '', onlyRequiredText = false, referenceImages = [], transparentBackground = false, includeText = false) => {
+export const generateAppIcon = async (appName, appDescription, style = null, colors = [], prompt = '', customStylePrompt = '', styleReferenceImage = null, requiredText = '', onlyRequiredText = false, referenceImages = [], includeText = false) => {
     try {
         // Use gemini-3-pro-image-preview for high quality icon generation
         const model = genAI.getGenerativeModel({
@@ -139,21 +140,38 @@ export const generateAppIcon = async (appName, appDescription, style = 'origami'
         });
 
         const imageConfig = IMAGE_TYPES.APP_ICON;
-        const styleDescription = getStyleDescription(style);
+
+        // Determine style description based on style type
+        let styleDescription;
+        let styleInstruction;
+
+        if (style === 'from-image' && styleReferenceImage) {
+            // Style from reference image - will be added as content part
+            styleDescription = 'Match the visual style, color palette, textures, and artistic approach of the provided reference image';
+            styleInstruction = 'STYLE: Replicate the exact visual style from the provided reference image - match colors, textures, artistic approach, and overall aesthetic';
+        } else if (style === 'custom' && customStylePrompt) {
+            // Custom style - use the custom prompt as the style description
+            styleDescription = customStylePrompt;
+            styleInstruction = `CUSTOM STYLE: ${customStylePrompt}`;
+        } else if (style && STYLE_DESCRIPTIONS[style]) {
+            // Predefined style
+            styleDescription = getStyleDescription(style);
+            styleInstruction = `STYLE: ${style.toUpperCase()} - ${styleDescription}`;
+        } else {
+            // No style selected - use a generic professional style
+            styleDescription = 'Clean, professional, modern design that fits the app concept';
+            styleInstruction = 'STYLE: Create a clean, professional, modern design';
+        }
 
         // Build color instruction
         const colorInstruction = colors && colors.length > 0
             ? `- Use these colors prominently in the design: ${colors.join(', ')}. Make these the dominant colors.`
             : '- Professional color palette that fits the style';
 
-        // Build background instruction based on transparentBackground flag
-        const backgroundInstruction = transparentBackground
-            ? `- TRANSPARENT BACKGROUND - The icon must have NO background, only the main subject/symbol
-- The subject should be designed to work on any background color
-- PNG format with alpha channel transparency
-- No colored background, no gradients in background, completely clear background`
-            : `- Solid or gradient background that complements the icon design
-- Background should be visually appealing and professional`;
+        // Use a clean background that complements the icon design
+        const backgroundInstruction = `- Clean, solid or gradient background that complements the icon design
+- Background should enhance the visibility of the main icon subject
+- Professional looking background suitable for app stores`;
 
         // Build text instruction based on requiredText and includeText flags
         let textInstruction;
@@ -174,7 +192,7 @@ export const generateAppIcon = async (appName, appDescription, style = 'origami'
         const fullPrompt = `Create a professional mobile app icon for an app called "${appName}".
 ${appDescription ? `App description: ${appDescription}.` : ''}
 
-STYLE: ${style.toUpperCase()} - ${styleDescription}
+${styleInstruction}
 ${prompt ? `Additional requirements: ${prompt}` : ''}
 
 CRITICAL REQUIREMENTS - FOLLOW EXACTLY:
@@ -182,7 +200,7 @@ CRITICAL REQUIREMENTS - FOLLOW EXACTLY:
 - Maximum visual impact - the design should extend to 100% of the frame boundaries
 - Edge-to-edge design with the main element touching or nearly touching all sides
 ${backgroundInstruction}
-- Apply the ${style} style thoroughly throughout the entire design
+- Apply the style thoroughly throughout the entire design
 - Clean design suitable for app stores
 - Simple and recognizable at small sizes
 ${colorInstruction}
@@ -192,12 +210,20 @@ ${textInstruction}
 - Suitable for ${imageConfig.width}x${imageConfig.height} resolution
 - The entire ${imageConfig.width}x${imageConfig.height} canvas must be utilized - DO NOT leave empty margins`;
 
-        console.log('Generating app icon with Gemini 3 Pro Image...', { transparentBackground, includeText, colors, requiredText });
+        console.log('Generating app icon with Gemini 3 Pro Image...', { style, customStylePrompt: !!customStylePrompt, styleReferenceImage: !!styleReferenceImage, includeText, colors, requiredText });
+
+        // Build content parts - include style reference image if provided
+        let allReferenceImages = [...referenceImages];
+        if (styleReferenceImage) {
+            allReferenceImages = [styleReferenceImage, ...allReferenceImages];
+        }
 
         const contentParts = buildContentParts(
-            fullPrompt, 
-            referenceImages, 
-            'Use these reference images as inspiration for the style, colors, or design elements:'
+            fullPrompt,
+            allReferenceImages,
+            styleReferenceImage
+                ? 'IMPORTANT: The FIRST image is the style reference - you MUST replicate its exact visual style. Additional images are for design inspiration:'
+                : 'Use these reference images as inspiration for the style, colors, or design elements:'
         );
 
         const result = await withRetry(async () => {
@@ -208,7 +234,7 @@ ${textInstruction}
                 },
             });
         });
-        
+
         const response = result.response;
 
         for (const part of response.candidates[0].content.parts) {
@@ -231,9 +257,11 @@ ${textInstruction}
  * Generate a feature graphic using Gemini
  * @param {string} appName - Name of the application
  * @param {string} appDescription - Description of the application
- * @param {string} style - Style preference
+ * @param {string} style - Style preference (can be null for no predefined style)
  * @param {string[]} colors - Color preferences
  * @param {string} prompt - Additional prompt details
+ * @param {string} customStylePrompt - Custom style description
+ * @param {string} styleReferenceImage - Base64 encoded reference image for style extraction
  * @param {string} requiredText - Text that must appear in the image
  * @param {boolean} onlyRequiredText - Only include required text
  * @param {string[]} referenceImages - Base64 encoded reference images
@@ -241,7 +269,7 @@ ${textInstruction}
  * @param {boolean} includeAppName - Whether to include app name in the graphic
  * @returns {Promise<{base64: string, mimeType: string}>}
  */
-export const generateFeatureGraphic = async (appName, appDescription, style = 'origami', colors = [], prompt = '', requiredText = '', onlyRequiredText = false, referenceImages = [], includeText = false, includeAppName = true) => {
+export const generateFeatureGraphic = async (appName, appDescription, style = null, colors = [], prompt = '', customStylePrompt = '', styleReferenceImage = null, requiredText = '', onlyRequiredText = false, referenceImages = [], includeText = false, includeAppName = true) => {
     try {
         const model = genAI.getGenerativeModel({
             model: 'gemini-3-pro-image-preview',
@@ -251,7 +279,24 @@ export const generateFeatureGraphic = async (appName, appDescription, style = 'o
         });
 
         const imageConfig = IMAGE_TYPES.FEATURE_GRAPHIC;
-        const styleDescription = getStyleDescription(style);
+
+        // Determine style description based on style type
+        let styleDescription;
+        let styleInstruction;
+
+        if (style === 'from-image' && styleReferenceImage) {
+            styleDescription = 'Match the visual style, color palette, textures, and artistic approach of the provided reference image';
+            styleInstruction = 'STYLE: Replicate the exact visual style from the provided reference image - match colors, textures, artistic approach, and overall aesthetic';
+        } else if (style === 'custom' && customStylePrompt) {
+            styleDescription = customStylePrompt;
+            styleInstruction = `CUSTOM STYLE: ${customStylePrompt}`;
+        } else if (style && STYLE_DESCRIPTIONS[style]) {
+            styleDescription = getStyleDescription(style);
+            styleInstruction = `STYLE: ${style.toUpperCase()} - ${styleDescription}`;
+        } else {
+            styleDescription = 'Clean, professional, modern design that fits the app concept';
+            styleInstruction = 'STYLE: Create a clean, professional, modern design';
+        }
 
         // Build color instruction
         const colorInstruction = colors && colors.length > 0
@@ -273,22 +318,22 @@ export const generateFeatureGraphic = async (appName, appDescription, style = 'o
         } else {
             textInstruction = '- NO TEXT in the image - purely visual design';
         }
-        
+
         const appNameInstruction = (!requiredText || !onlyRequiredText) && includeAppName
-            ? `- Include the app name "${appName}" as stylized, prominent text that fits the ${style} aesthetic`
+            ? `- Include the app name "${appName}" as stylized, prominent text that fits the aesthetic`
             : '';
 
         const fullPrompt = `Create a professional feature graphic banner for a mobile app called "${appName}".
 ${appDescription ? `App description: ${appDescription}.` : ''}
 
-STYLE: ${style.toUpperCase()} - ${styleDescription}
+${styleInstruction}
 ${prompt ? `Additional requirements: ${prompt}` : ''}
 
 Requirements:
 - Landscape orientation with ${imageConfig.aspectRatio} aspect ratio
-- Apply the ${style} style thoroughly throughout the entire design
+- Apply the style thoroughly throughout the entire design
 - Eye-catching design that showcases the app
-- Professional look matching the ${style} aesthetic
+- Professional look matching the aesthetic
 ${colorInstruction}
 ${appNameInstruction}
 ${textInstruction}
@@ -296,12 +341,20 @@ ${textInstruction}
 - High quality with good contrast
 - Resolution: ${imageConfig.width}x${imageConfig.height} pixels`;
 
-        console.log('Generating feature graphic with Gemini 3 Pro Image...', { style, includeText, includeAppName, colors, requiredText });
+        console.log('Generating feature graphic with Gemini 3 Pro Image...', { style, customStylePrompt: !!customStylePrompt, styleReferenceImage: !!styleReferenceImage, includeText, includeAppName, colors, requiredText });
+
+        // Build content parts - include style reference image if provided
+        let allReferenceImages = [...referenceImages];
+        if (styleReferenceImage) {
+            allReferenceImages = [styleReferenceImage, ...allReferenceImages];
+        }
 
         const contentParts = buildContentParts(
-            fullPrompt, 
-            referenceImages, 
-            'Use these reference images as inspiration for the style, colors, or design elements:'
+            fullPrompt,
+            allReferenceImages,
+            styleReferenceImage
+                ? 'IMPORTANT: The FIRST image is the style reference - you MUST replicate its exact visual style. Additional images are for design inspiration:'
+                : 'Use these reference images as inspiration for the style, colors, or design elements:'
         );
 
         const result = await withRetry(async () => {
@@ -312,7 +365,7 @@ ${textInstruction}
                 },
             });
         });
-        
+
         const response = result.response;
 
         for (const part of response.candidates[0].content.parts) {
@@ -335,16 +388,18 @@ ${textInstruction}
  * Generate a store screenshot mockup using Gemini
  * @param {string} appName - Name of the application
  * @param {string} appDescription - Description of the application
- * @param {string} style - Style preference
+ * @param {string} style - Style preference (can be null for no predefined style)
  * @param {string[]} colors - Color preferences
  * @param {string} prompt - Additional prompt details
+ * @param {string} customStylePrompt - Custom style description
+ * @param {string} styleReferenceImage - Base64 encoded reference image for style extraction
  * @param {string} requiredText - Text that must appear in the image
  * @param {boolean} onlyRequiredText - Only include required text
  * @param {string[]} referenceImages - Base64 encoded reference images (REQUIRED - at least 1 app screenshot)
  * @param {boolean} includeText - Whether to include promotional text
  * @returns {Promise<{base64: string, mimeType: string}>}
  */
-export const generateStoreScreenshot = async (appName, appDescription, style = 'origami', colors = [], prompt = '', requiredText = '', onlyRequiredText = false, referenceImages = [], includeText = false) => {
+export const generateStoreScreenshot = async (appName, appDescription, style = null, colors = [], prompt = '', customStylePrompt = '', styleReferenceImage = null, requiredText = '', onlyRequiredText = false, referenceImages = [], includeText = false) => {
     // Validate that at least 1 reference image (app screenshot) is provided
     if (!referenceImages || referenceImages.length === 0) {
         throw new Error('Store Screenshot requires at least 1 app screenshot. Please upload your app screenshot.');
@@ -359,7 +414,24 @@ export const generateStoreScreenshot = async (appName, appDescription, style = '
         });
 
         const imageConfig = IMAGE_TYPES.STORE_SCREENSHOT;
-        const styleDescription = getStyleDescription(style);
+
+        // Determine style description based on style type
+        let styleDescription;
+        let styleInstruction;
+
+        if (style === 'from-image' && styleReferenceImage) {
+            styleDescription = 'Match the visual style, color palette, textures, and artistic approach of the provided reference image';
+            styleInstruction = 'STYLE: Replicate the exact visual style from the provided reference image - match colors, textures, artistic approach, and overall aesthetic';
+        } else if (style === 'custom' && customStylePrompt) {
+            styleDescription = customStylePrompt;
+            styleInstruction = `CUSTOM STYLE: ${customStylePrompt}`;
+        } else if (style && STYLE_DESCRIPTIONS[style]) {
+            styleDescription = getStyleDescription(style);
+            styleInstruction = `STYLE: ${style.toUpperCase()} - ${styleDescription}`;
+        } else {
+            styleDescription = 'Clean, professional, modern design that fits the app concept';
+            styleInstruction = 'STYLE: Create a clean, professional, modern design';
+        }
 
         // Build color instruction
         const colorInstruction = colors && colors.length > 0
@@ -387,14 +459,14 @@ export const generateStoreScreenshot = async (appName, appDescription, style = '
 IMPORTANT: Use the provided app screenshot(s) as the MAIN CONTENT of this store image.
 ${appDescription ? `App description: ${appDescription}.` : ''}
 
-STYLE: ${style.toUpperCase()} - ${styleDescription}
+${styleInstruction}
 ${prompt ? `Additional requirements: ${prompt}` : ''}
 
 CRITICAL REQUIREMENTS:
 - This is a STORE LISTING IMAGE, not just a screenshot
 - Feature the provided app screenshot(s) prominently in the design
-- Apply the ${style} style to the background and decorative elements
-- Add a beautiful, professional background matching the ${style} aesthetic
+- Apply the style to the background and decorative elements
+- Add a beautiful, professional background matching the aesthetic
 - The app screenshot should be displayed on a phone mockup or floating elegantly
 ${colorInstruction}
 ${textInstruction}
@@ -404,12 +476,20 @@ ${textInstruction}
 - Professional marketing quality - this should look like a real app store listing
 - Make it visually stunning with proper shadows, reflections, and depth`;
 
-        console.log('Generating store screenshot with Gemini 3 Pro Image (with app screenshot)...', { style, colors, requiredText });
+        console.log('Generating store screenshot with Gemini 3 Pro Image (with app screenshot)...', { style, customStylePrompt: !!customStylePrompt, styleReferenceImage: !!styleReferenceImage, colors, requiredText });
+
+        // Build content parts - include style reference image if provided
+        let allReferenceImages = [...referenceImages];
+        if (styleReferenceImage) {
+            allReferenceImages = [styleReferenceImage, ...allReferenceImages];
+        }
 
         const contentParts = buildContentParts(
-            fullPrompt, 
-            referenceImages, 
-            'These are the actual app screenshots to feature in the store listing image. Use these EXACT screenshots as the main content:'
+            fullPrompt,
+            allReferenceImages,
+            styleReferenceImage
+                ? 'IMPORTANT: The FIRST image is the style reference - you MUST replicate its exact visual style. The following images are the actual app screenshots to feature in the store listing image:'
+                : 'These are the actual app screenshots to feature in the store listing image. Use these EXACT screenshots as the main content:'
         );
 
         const result = await withRetry(async () => {
@@ -420,7 +500,7 @@ ${textInstruction}
                 },
             });
         });
-        
+
         const response = result.response;
 
         for (const part of response.candidates[0].content.parts) {
@@ -444,32 +524,31 @@ ${textInstruction}
  * @param {string} imageType - Type of image (APP_ICON, FEATURE_GRAPHIC, STORE_SCREENSHOT)
  * @param {string} appName - Name of the application
  * @param {string} appDescription - Description of the application
- * @param {string} style - Style preference
- * @param {string} prompt - Additional prompt details
- * @param {string} documentId - Document ID for folder organization
+ * @param {string} style - Style preference (can be null for no predefined style)
  * @param {string[]} colors - Color preferences
  * @param {string} prompt - Additional prompt details
+ * @param {string} customStylePrompt - Custom style description
+ * @param {string} styleReferenceImage - Base64 encoded reference image for style extraction
  * @param {string} requiredText - Text that must appear in the image
  * @param {boolean} onlyRequiredText - Only include required text
  * @param {string} documentId - Document ID for folder organization
  * @param {string[]} referenceImages - Base64 encoded reference images
- * @param {boolean} transparentBackground - Whether to use transparent background (for icons)
  * @param {boolean} includeText - Whether to include text in images
  * @param {boolean} includeAppName - Whether to include app name (for feature graphics)
  * @returns {Promise<{url: string, publicId: string, width: number, height: number, base64: string}>}
  */
-export const generateAndUploadImage = async (imageType, appName, appDescription, style, colors, prompt, requiredText, onlyRequiredText, documentId, referenceImages = [], transparentBackground = false, includeText = false, includeAppName = true) => {
+export const generateAndUploadImage = async (imageType, appName, appDescription, style, colors, prompt, customStylePrompt, styleReferenceImage, requiredText, onlyRequiredText, documentId, referenceImages = [], includeText = false, includeAppName = true) => {
     let imageData;
 
     switch (imageType) {
         case 'APP_ICON':
-            imageData = await generateAppIcon(appName, appDescription, style, colors, prompt, requiredText, onlyRequiredText, referenceImages, transparentBackground, includeText);
+            imageData = await generateAppIcon(appName, appDescription, style, colors, prompt, customStylePrompt, styleReferenceImage, requiredText, onlyRequiredText, referenceImages, includeText);
             break;
         case 'FEATURE_GRAPHIC':
-            imageData = await generateFeatureGraphic(appName, appDescription, style, colors, prompt, requiredText, onlyRequiredText, referenceImages, includeText, includeAppName);
+            imageData = await generateFeatureGraphic(appName, appDescription, style, colors, prompt, customStylePrompt, styleReferenceImage, requiredText, onlyRequiredText, referenceImages, includeText, includeAppName);
             break;
         case 'STORE_SCREENSHOT':
-            imageData = await generateStoreScreenshot(appName, appDescription, style, colors, prompt, requiredText, onlyRequiredText, referenceImages, includeText);
+            imageData = await generateStoreScreenshot(appName, appDescription, style, colors, prompt, customStylePrompt, styleReferenceImage, requiredText, onlyRequiredText, referenceImages, includeText);
             break;
         default:
             throw new Error(`Unknown image type: ${imageType}`);

@@ -241,8 +241,8 @@ export const GET_APP_IMAGES_QUERY = gql`
 `;
 
 export const GENERATE_APP_IMAGE_MUTATION = gql`
-  mutation GenerateAppImage($documentId: ID!, $imageType: String!, $styles: [String!], $colors: [String!], $prompt: String, $requiredText: String, $onlyRequiredText: Boolean, $referenceImages: [String], $transparentBackground: Boolean, $count: Int, $includeText: Boolean, $includeAppName: Boolean) {
-    generateAppImage(documentId: $documentId, imageType: $imageType, styles: $styles, colors: $colors, prompt: $prompt, requiredText: $requiredText, onlyRequiredText: $onlyRequiredText, referenceImages: $referenceImages, transparentBackground: $transparentBackground, count: $count, includeText: $includeText, includeAppName: $includeAppName) {
+  mutation GenerateAppImage($documentId: ID!, $imageType: String!, $styles: [String!], $colors: [String!], $prompt: String, $customStylePrompt: String, $styleReferenceImage: String, $requiredText: String, $onlyRequiredText: Boolean, $referenceImages: [String], $count: Int, $includeText: Boolean, $includeAppName: Boolean) {
+    generateAppImage(documentId: $documentId, imageType: $imageType, styles: $styles, colors: $colors, prompt: $prompt, customStylePrompt: $customStylePrompt, styleReferenceImage: $styleReferenceImage, requiredText: $requiredText, onlyRequiredText: $onlyRequiredText, referenceImages: $referenceImages, count: $count, includeText: $includeText, includeAppName: $includeAppName) {
       id
       documentId
       imageType

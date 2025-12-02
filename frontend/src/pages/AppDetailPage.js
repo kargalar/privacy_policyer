@@ -45,6 +45,8 @@ import {
 
 // Style options with preview images and descriptions
 const STYLE_OPTIONS = [
+    { id: 'custom', name: 'Custom', color: 'from-violet-500 to-purple-600', emoji: '✨', isCustom: true },
+    { id: 'from-image', name: 'From Image', color: 'from-emerald-500 to-teal-600', emoji: '🖼️', isFromImage: true },
     { id: 'retro', name: 'Retro', color: 'from-pink-500 to-purple-600', emoji: '🎨' },
     { id: 'cartoon', name: 'Cartoon', color: 'from-cyan-400 to-teal-500', emoji: '💡' },
     { id: 'geometric', name: 'Geometric', color: 'from-orange-500 to-red-600', emoji: '🦁' },
@@ -101,14 +103,15 @@ const AppDetailPage = () => {
 
     // Image generation state
     const [imageType, setImageType] = useState('APP_ICON');
-    const [selectedStyles, setSelectedStyles] = useState(['origami']); // Multiple styles can be selected
+    const [selectedStyles, setSelectedStyles] = useState([]); // Multiple styles can be selected (optional)
     const [selectedColors, setSelectedColors] = useState([]); // Multiple colors can be selected
     const [imagePrompt, setImagePrompt] = useState('');
+    const [customStylePrompt, setCustomStylePrompt] = useState(''); // Custom style prompt for custom style option
+    const [styleReferenceImage, setStyleReferenceImage] = useState(null); // Reference image for "from-image" style
     const [requiredText, setRequiredText] = useState(''); // Text that must appear in the image
     const [onlyRequiredText, setOnlyRequiredText] = useState(false); // Only include required text, no other text
     const [referenceImages, setReferenceImages] = useState([]);
     const [generatingCount, setGeneratingCount] = useState(0); // Track number of images being generated
-    const [transparentBackground, setTransparentBackground] = useState(false); // For app icons
     const [includeText, setIncludeText] = useState(false); // Include text in generated images
     const [includeAppName, setIncludeAppName] = useState(true); // Include app name in feature graphics
     const [lightboxImage, setLightboxImage] = useState(null); // For viewing images in lightbox
@@ -384,9 +387,15 @@ const AppDetailPage = () => {
             return;
         }
 
-        // Check if at least one style is selected
-        if (selectedStyles.length === 0) {
-            alert('Please select at least one style.');
+        // If custom style is selected, custom prompt is required
+        if (selectedStyles.includes('custom') && !customStylePrompt.trim()) {
+            alert('Please enter a custom style description for the Custom style option.');
+            return;
+        }
+
+        // If from-image style is selected, style reference image is required
+        if (selectedStyles.includes('from-image') && !styleReferenceImage) {
+            alert('Please upload a reference image for the "From Image" style option.');
             return;
         }
 
@@ -396,22 +405,32 @@ const AppDetailPage = () => {
             return;
         }
 
-        // Calculate total images: styles × count
-        const totalImages = selectedStyles.length * imageCount;
+        // If no style selected, use empty array (backend will handle default)
+        const stylesToSend = selectedStyles.length > 0 ? selectedStyles : [];
+
+        // Calculate total images: max(1, styles.length) × count
+        const totalImages = Math.max(1, stylesToSend.length) * imageCount;
         setGeneratingCount(prev => prev + totalImages);
+
+        // Combine prompts: imagePrompt + customStylePrompt for custom style
+        let finalPrompt = imagePrompt;
+        if (selectedStyles.includes('custom') && customStylePrompt.trim()) {
+            finalPrompt = finalPrompt ? `${finalPrompt}. Custom Style: ${customStylePrompt}` : `Custom Style: ${customStylePrompt}`;
+        }
 
         // Generate images for all selected styles in one request
         generateAppImageMutation({
             variables: {
                 documentId: id,
                 imageType,
-                styles: selectedStyles,
+                styles: stylesToSend.length > 0 ? stylesToSend : null,
                 colors: selectedColors.length > 0 ? selectedColors : null,
-                prompt: imagePrompt,
+                prompt: finalPrompt,
+                customStylePrompt: selectedStyles.includes('custom') ? customStylePrompt : null,
+                styleReferenceImage: selectedStyles.includes('from-image') ? styleReferenceImage : null,
                 requiredText: requiredText.trim() || null,
                 onlyRequiredText: onlyRequiredText,
                 referenceImages: referenceImages.length > 0 ? referenceImages : null,
-                transparentBackground: imageType === 'APP_ICON' ? transparentBackground : false,
                 count: imageCount,
                 includeText: includeText,
                 includeAppName: imageType === 'FEATURE_GRAPHIC' ? includeAppName : false,
@@ -420,6 +439,7 @@ const AppDetailPage = () => {
 
         // Clear only references after starting generation, keep prompt
         setReferenceImages([]);
+        setStyleReferenceImage(null);
     };
 
     const compressImage = (file, maxWidth = 1024, quality = 0.8) => {
@@ -1189,10 +1209,6 @@ const AppDetailPage = () => {
                                         value={imageType}
                                         onChange={(e) => {
                                             setImageType(e.target.value);
-                                            // Reset transparent background when changing type
-                                            if (e.target.value !== 'APP_ICON') {
-                                                setTransparentBackground(false);
-                                            }
                                         }}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
                                     >
@@ -1200,18 +1216,6 @@ const AppDetailPage = () => {
                                         <option value="FEATURE_GRAPHIC">Feature Graphic (1024x500)</option>
                                         <option value="STORE_SCREENSHOT">Store Screenshot (1080x1920)</option>
                                     </select>
-                                    {/* Transparent Background Option - Only for App Icons */}
-                                    {imageType === 'APP_ICON' && (
-                                        <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={transparentBackground}
-                                                onChange={(e) => setTransparentBackground(e.target.checked)}
-                                                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                                            />
-                                            <span className="text-sm text-gray-600">Transparent background</span>
-                                        </label>
-                                    )}
                                 </div>
 
                                 {/* Custom Prompt */}
@@ -1231,12 +1235,15 @@ const AppDetailPage = () => {
                             <div className="mb-6">
                                 <div className="flex items-center justify-between mb-3">
                                     <label className="block text-sm font-medium text-gray-700">
-                                        Select Styles <span className="text-gray-400">(multiple allowed)</span>
+                                        Select Styles <span className="text-gray-400">(optional, multiple allowed)</span>
                                     </label>
                                     {selectedStyles.length > 0 && (
-                                        <span className="text-xs text-purple-600 font-medium">
-                                            {selectedStyles.length} selected
-                                        </span>
+                                        <button
+                                            onClick={() => setSelectedStyles([])}
+                                            className="text-xs text-gray-500 hover:text-gray-700"
+                                        >
+                                            Clear all ({selectedStyles.length})
+                                        </button>
                                     )}
                                 </div>
                                 <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-9 gap-3">
@@ -1248,10 +1255,8 @@ const AppDetailPage = () => {
                                                 type="button"
                                                 onClick={() => {
                                                     if (isSelected) {
-                                                        // Remove if already selected (but keep at least one)
-                                                        if (selectedStyles.length > 1) {
-                                                            setSelectedStyles(prev => prev.filter(s => s !== style.id));
-                                                        }
+                                                        // Remove if already selected
+                                                        setSelectedStyles(prev => prev.filter(s => s !== style.id));
                                                     } else {
                                                         // Add to selection
                                                         setSelectedStyles(prev => [...prev, style.id]);
@@ -1281,6 +1286,72 @@ const AppDetailPage = () => {
                                         );
                                     })}
                                 </div>
+
+                                {/* Custom Style Prompt Input - shown when custom style is selected */}
+                                {selectedStyles.includes('custom') && (
+                                    <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                                        <label className="block text-sm font-medium text-purple-700 mb-2">
+                                            Custom Style Description <span className="text-red-500">*</span>
+                                        </label>
+                                        <textarea
+                                            value={customStylePrompt}
+                                            onChange={(e) => setCustomStylePrompt(e.target.value)}
+                                            placeholder="Describe your custom style in detail, e.g., 'Cyberpunk aesthetic with neon pink and blue colors, futuristic elements, glitch effects...'"
+                                            className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none"
+                                            rows={3}
+                                        />
+                                        <p className="text-xs text-purple-600 mt-1">
+                                            Be specific about colors, textures, themes, and visual elements you want in your style.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Style Reference Image Upload - shown when from-image style is selected */}
+                                {selectedStyles.includes('from-image') && (
+                                    <div className="mt-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                                        <label className="block text-sm font-medium text-emerald-700 mb-2">
+                                            Style Reference Image <span className="text-red-500">*</span>
+                                        </label>
+                                        <p className="text-xs text-emerald-600 mb-3">
+                                            Upload an image whose style you want to replicate. The generated image will have a similar visual style.
+                                        </p>
+                                        {styleReferenceImage ? (
+                                            <div className="relative inline-block">
+                                                <img
+                                                    src={styleReferenceImage}
+                                                    alt="Style reference"
+                                                    className="w-32 h-32 object-cover rounded-lg border-2 border-emerald-300"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setStyleReferenceImage(null)}
+                                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-emerald-300 border-dashed rounded-lg cursor-pointer bg-emerald-50 hover:bg-emerald-100 transition-colors">
+                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                    <Upload className="w-8 h-8 mb-2 text-emerald-500" />
+                                                    <p className="text-sm text-emerald-600">Click to upload style reference</p>
+                                                </div>
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            const compressed = await compressImage(file, 512, 0.8);
+                                                            setStyleReferenceImage(compressed);
+                                                        }
+                                                    }}
+                                                />
+                                            </label>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Color Selection Grid - Multiple Selection */}
@@ -1480,18 +1551,17 @@ const AppDetailPage = () => {
 
                                 <button
                                     onClick={handleGenerateImage}
-                                    disabled={selectedStyles.length === 0}
-                                    className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition flex items-center gap-2"
                                 >
                                     <Sparkles className="w-4 h-4" />
-                                    Generate {selectedStyles.length * imageCount} Image{selectedStyles.length * imageCount > 1 ? 's' : ''}
+                                    Generate {Math.max(1, selectedStyles.length) * imageCount} Image{Math.max(1, selectedStyles.length) * imageCount > 1 ? 's' : ''}
                                 </button>
                             </div>
 
                             {/* Cost estimate */}
                             <p className="text-xs text-gray-400 mt-2">
-                                {selectedStyles.length} style{selectedStyles.length > 1 ? 's' : ''} × {imageCount} image{imageCount > 1 ? 's' : ''} = {selectedStyles.length * imageCount} total |
-                                Estimated cost: ~${(selectedStyles.length * imageCount * 0.02).toFixed(2)} USD
+                                {Math.max(1, selectedStyles.length)} style{Math.max(1, selectedStyles.length) > 1 ? 's' : ''} × {imageCount} image{imageCount > 1 ? 's' : ''} = {Math.max(1, selectedStyles.length) * imageCount} total |
+                                Estimated cost: ~${(Math.max(1, selectedStyles.length) * imageCount * 0.02).toFixed(2)} USD
                             </p>
                         </div>
 

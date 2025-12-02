@@ -393,7 +393,7 @@ export const resolvers = {
         },
 
         // App Image mutations
-        generateAppImage: async (_, { documentId, imageType, styles, colors, prompt, requiredText, onlyRequiredText, referenceImages, transparentBackground, count, includeText, includeAppName }, context) => {
+        generateAppImage: async (_, { documentId, imageType, styles, colors, prompt, customStylePrompt, styleReferenceImage, requiredText, onlyRequiredText, referenceImages, count, includeText, includeAppName }, context) => {
             const user = requireAuth(context);
             const doc = await documentService.getDocumentById(documentId);
 
@@ -402,22 +402,24 @@ export const resolvers = {
             }
 
             // Generate images for each style, count images per style
+            // If no styles selected, generate with null style (will use default or prompt-based)
             const imageCount = Math.min(Math.max(count || 1, 1), 6); // Clamp between 1 and 6
-            const selectedStyles = styles && styles.length > 0 ? styles : ['origami'];
+            const selectedStyles = styles && styles.length > 0 ? styles : [null];
             const results = [];
 
             for (const style of selectedStyles) {
                 for (let i = 0; i < imageCount; i++) {
                     const image = await imageService.createAppImage(
-                        documentId, 
-                        imageType, 
-                        style, 
+                        documentId,
+                        imageType,
+                        style,
                         colors || [],
-                        prompt || '', 
+                        prompt || '',
+                        customStylePrompt || '',
+                        styleReferenceImage || null,
                         requiredText || '',
                         onlyRequiredText || false,
-                        referenceImages || [], 
-                        transparentBackground || false,
+                        referenceImages || [],
                         user.id, // Pass userId for API usage tracking
                         includeText || false,
                         includeAppName !== false // Default to true for feature graphics
@@ -457,14 +459,14 @@ export const resolvers = {
             // Import gemini service dynamically
             const { generateAppDescription } = await import('../services/geminiService.js');
             const result = await generateAppDescription(doc.appName, prompt);
-            
+
             // Save generated descriptions to database
             await documentService.updateDocumentDescriptions(
-                documentId, 
-                result.shortDescription, 
+                documentId,
+                result.shortDescription,
                 result.longDescription
             );
-            
+
             // Log API usage
             await apiUsageService.logApiUsage({
                 userId: user.id,

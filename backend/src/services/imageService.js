@@ -41,19 +41,20 @@ export const getImageById = async (imageId) => {
  * Generate and save a new app image
  * @param {string} documentId
  * @param {string} imageType - APP_ICON, FEATURE_GRAPHIC, STORE_SCREENSHOT
- * @param {string} style - Style preference
+ * @param {string} style - Style preference (can be null for no predefined style)
  * @param {string[]} colors - Color preferences
  * @param {string} prompt - Additional prompt details
+ * @param {string} customStylePrompt - Custom style description for custom style option
+ * @param {string} styleReferenceImage - Base64 encoded reference image for style extraction
  * @param {string} requiredText - Text that must appear in the image
  * @param {boolean} onlyRequiredText - Only include required text, no other text
  * @param {string[]} referenceImages - Base64 encoded reference images
- * @param {boolean} transparentBackground - Whether to use transparent background (for icons)
  * @param {string} userId - User ID for API usage tracking
  * @param {boolean} includeText - Whether to include text in the image
  * @param {boolean} includeAppName - Whether to include app name (for feature graphics)
  * @returns {Promise<Object>}
  */
-export const createAppImage = async (documentId, imageType, style = 'origami', colors = [], prompt = '', requiredText = '', onlyRequiredText = false, referenceImages = [], transparentBackground = false, userId = null, includeText = false, includeAppName = true) => {
+export const createAppImage = async (documentId, imageType, style = null, colors = [], prompt = '', customStylePrompt = '', styleReferenceImage = null, requiredText = '', onlyRequiredText = false, referenceImages = [], userId = null, includeText = false, includeAppName = true) => {
     // Get document info for app name and description
     const docResult = await pool.query(
         `SELECT app_name, app_description, user_id FROM documents WHERE id = $1`,
@@ -75,11 +76,12 @@ export const createAppImage = async (documentId, imageType, style = 'origami', c
         style,
         colors,
         prompt,
+        customStylePrompt,
+        styleReferenceImage,
         requiredText,
         onlyRequiredText,
         documentId,
         referenceImages,
-        transparentBackground,
         includeText,
         includeAppName
     );
@@ -97,7 +99,8 @@ export const createAppImage = async (documentId, imageType, style = 'origami', c
             metadata: {
                 imageType,
                 style,
-                transparentBackground,
+                customStylePrompt: customStylePrompt ? true : false,
+                styleReferenceImage: styleReferenceImage ? true : false,
                 hasReferenceImages: referenceImages.length > 0,
                 includeText,
                 includeAppName,
@@ -117,8 +120,8 @@ export const createAppImage = async (documentId, imageType, style = 'origami', c
             uuidv4(),
             documentId,
             imageType,
-            style,
-            prompt || null,
+            style || (styleReferenceImage ? 'from-image' : 'custom'),
+            prompt || customStylePrompt || null,
             result.url,
             result.publicId,
             result.width,
