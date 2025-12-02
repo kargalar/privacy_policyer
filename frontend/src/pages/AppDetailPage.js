@@ -163,7 +163,7 @@ const AppDetailPage = () => {
         if (documentData?.document?.longDescription && !generatedLongDesc) {
             setGeneratedLongDesc(documentData.document.longDescription);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [documentData]);
 
     const [publishDocument, { loading: publishing }] = useMutation(PUBLISH_DOCUMENT_MUTATION, {
@@ -315,13 +315,24 @@ const AppDetailPage = () => {
     const handleGenerateDocuments = async () => {
         setDocumentError('');
 
-        // Check if all required questions are answered
-        const allAnswered = staticQuestions
-            .filter((q) => q.required)
-            .every((q) => documentAnswers[q.id]);
+        // Find first unanswered required question from visible questions only
+        const visibleQuestions = Object.values(getQuestionsBySection(documentAnswers)).flat();
+        const firstUnanswered = visibleQuestions.find(
+            (q) => q.required && (documentAnswers[q.id] === undefined || documentAnswers[q.id] === null || documentAnswers[q.id] === '')
+        );
 
-        if (!allAnswered) {
-            setDocumentError('Please answer all required questions');
+        if (firstUnanswered) {
+            setDocumentError(`Please answer: "${firstUnanswered.question}"`);
+            // Scroll to the first unanswered question
+            const element = document.getElementById(`question-${firstUnanswered.id}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Add focus to the input if possible
+                const input = element.querySelector('input, textarea, select');
+                if (input) {
+                    setTimeout(() => input.focus(), 500);
+                }
+            }
             return;
         }
 
@@ -372,13 +383,13 @@ const AppDetailPage = () => {
             alert('Please generate app description first. Go to Description tab to create your app description.');
             return;
         }
-        
+
         // Check if at least one style is selected
         if (selectedStyles.length === 0) {
             alert('Please select at least one style.');
             return;
         }
-        
+
         // Store Screenshot requires at least 1 reference image (app screenshot)
         if (imageType === 'STORE_SCREENSHOT' && referenceImages.length === 0) {
             alert('Store Screenshot requires at least 1 app screenshot. Please upload your app screenshot first.');
@@ -388,7 +399,7 @@ const AppDetailPage = () => {
         // Calculate total images: styles × count
         const totalImages = selectedStyles.length * imageCount;
         setGeneratingCount(prev => prev + totalImages);
-        
+
         // Generate images for all selected styles in one request
         generateAppImageMutation({
             variables: {
@@ -406,7 +417,7 @@ const AppDetailPage = () => {
                 includeAppName: imageType === 'FEATURE_GRAPHIC' ? includeAppName : false,
             },
         });
-        
+
         // Clear only references after starting generation, keep prompt
         setReferenceImages([]);
     };
@@ -492,13 +503,13 @@ const AppDetailPage = () => {
     const handleDrop = async (e) => {
         e.preventDefault();
         setIsDragging(false);
-        
+
         const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
         if (files.length === 0) return;
-        
+
         const maxImages = 3;
         const maxSizePerImage = 5 * 1024 * 1024;
-        
+
         for (const file of files.slice(0, maxImages - referenceImages.length)) {
             if (file.size > maxSizePerImage) {
                 try {
@@ -710,14 +721,9 @@ const AppDetailPage = () => {
                 {/* DOCUMENTS TAB */}
                 {mainTab === 'documents' && (
                     <>
-                        {/* Show Create Document Form if no privacy policy exists */}
-                        {!document.privacyPolicy && !showDocumentForm && (
-                            <div className="mb-8 bg-indigo-50 border border-indigo-200 rounded-lg p-8 text-center">
-                                <FileText className="w-16 h-16 text-indigo-400 mx-auto mb-4" />
-                                <h2 className="text-xl font-semibold text-indigo-900 mb-2">No Documents Yet</h2>
-                                <p className="text-indigo-700 mb-6">
-                                    Create privacy policy and terms of service for your app by answering a few questions.
-                                </p>
+                        {/* Show Create Document button - always visible */}
+                        {!showDocumentForm && (
+                            <div className="mb-8 flex justify-end">
                                 <button
                                     onClick={() => setShowDocumentForm(true)}
                                     className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
@@ -766,8 +772,8 @@ const AppDetailPage = () => {
                                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                                     <span className="font-medium">{answered}/{totalVisible} questions answered</span>
                                                     <div className="flex-1 bg-gray-200 rounded-full h-2">
-                                                        <div 
-                                                            className="bg-indigo-600 h-2 rounded-full transition-all duration-300" 
+                                                        <div
+                                                            className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
                                                             style={{ width: `${totalVisible > 0 ? (answered / totalVisible) * 100 : 0}%` }}
                                                         />
                                                     </div>
@@ -785,7 +791,7 @@ const AppDetailPage = () => {
                                                 </div>
                                                 <div className="p-4 space-y-6">
                                                     {sectionQuestions.map((question) => (
-                                                        <div key={question.id} className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
+                                                        <div key={question.id} id={`question-${question.id}`} className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
                                                             <label className="block text-base font-medium text-gray-900 mb-2">
                                                                 {question.question}
                                                                 {question.required && <span className="text-red-600 ml-1">*</span>}
@@ -1030,7 +1036,8 @@ const AppDetailPage = () => {
                             </div>
                         )}
 
-                        {document.status === 'DRAFT' && (
+                        {/* Delete button for non-published documents */}
+                        {document.status !== 'PUBLISHED' && (
                             <div className="mb-8 flex justify-end">
                                 <button
                                     onClick={handleDelete}
@@ -1045,37 +1052,37 @@ const AppDetailPage = () => {
 
                         {/* Document Sub-tabs - Only show when documents exist */}
                         {document.privacyPolicy && (
-                        <div className="mb-6 flex gap-2 border-b border-gray-200 overflow-x-auto">
-                            <button
-                                onClick={() => setDocumentTab('privacy')}
-                                className={`px-6 py-3 font-medium border-b-2 transition whitespace-nowrap ${documentTab === 'privacy'
-                                    ? 'border-indigo-600 text-indigo-600'
-                                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                                    }`}
-                            >
-                                Privacy Policy
-                            </button>
-                            <button
-                                onClick={() => setDocumentTab('terms')}
-                                className={`px-6 py-3 font-medium border-b-2 transition whitespace-nowrap ${documentTab === 'terms'
-                                    ? 'border-indigo-600 text-indigo-600'
-                                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                                    }`}
-                            >
-                                Terms of Service
-                            </button>
-                            {document.deleteRequests && document.deleteRequests.length > 0 && (
+                            <div className="mb-6 flex gap-2 border-b border-gray-200 overflow-x-auto">
                                 <button
-                                    onClick={() => setDocumentTab('deletions')}
-                                    className={`px-6 py-3 font-medium border-b-2 transition whitespace-nowrap ${documentTab === 'deletions'
-                                        ? 'border-red-600 text-red-600'
+                                    onClick={() => setDocumentTab('privacy')}
+                                    className={`px-6 py-3 font-medium border-b-2 transition whitespace-nowrap ${documentTab === 'privacy'
+                                        ? 'border-indigo-600 text-indigo-600'
                                         : 'border-transparent text-gray-600 hover:text-gray-900'
                                         }`}
                                 >
-                                    Deletion Requests ({document.deleteRequests.length})
+                                    Privacy Policy
                                 </button>
-                            )}
-                        </div>
+                                <button
+                                    onClick={() => setDocumentTab('terms')}
+                                    className={`px-6 py-3 font-medium border-b-2 transition whitespace-nowrap ${documentTab === 'terms'
+                                        ? 'border-indigo-600 text-indigo-600'
+                                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                                        }`}
+                                >
+                                    Terms of Service
+                                </button>
+                                {document.deleteRequests && document.deleteRequests.length > 0 && (
+                                    <button
+                                        onClick={() => setDocumentTab('deletions')}
+                                        className={`px-6 py-3 font-medium border-b-2 transition whitespace-nowrap ${documentTab === 'deletions'
+                                            ? 'border-red-600 text-red-600'
+                                            : 'border-transparent text-gray-600 hover:text-gray-900'
+                                            }`}
+                                    >
+                                        Deletion Requests ({document.deleteRequests.length})
+                                    </button>
+                                )}
+                            </div>
                         )}
 
                         {/* Document Content - Only show when documents exist */}
@@ -1250,20 +1257,18 @@ const AppDetailPage = () => {
                                                         setSelectedStyles(prev => [...prev, style.id]);
                                                     }
                                                 }}
-                                                className={`relative group flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${
-                                                    isSelected
-                                                        ? 'ring-2 ring-pink-500 ring-offset-2 bg-white shadow-lg scale-105'
-                                                        : 'bg-white hover:shadow-md hover:scale-102 border border-gray-200'
-                                                }`}
+                                                className={`relative group flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${isSelected
+                                                    ? 'ring-2 ring-pink-500 ring-offset-2 bg-white shadow-lg scale-105'
+                                                    : 'bg-white hover:shadow-md hover:scale-102 border border-gray-200'
+                                                    }`}
                                             >
                                                 {/* Style Preview */}
                                                 <div className={`w-14 h-14 rounded-lg bg-gradient-to-br ${style.color} flex items-center justify-center text-2xl mb-1.5 shadow-sm`}>
                                                     {style.emoji}
                                                 </div>
                                                 {/* Style Name */}
-                                                <span className={`text-xs font-medium ${
-                                                    isSelected ? 'text-pink-600' : 'text-gray-700'
-                                                }`}>
+                                                <span className={`text-xs font-medium ${isSelected ? 'text-pink-600' : 'text-gray-700'
+                                                    }`}>
                                                     {style.name}
                                                 </span>
                                                 {/* Selection Indicator */}
@@ -1307,11 +1312,10 @@ const AppDetailPage = () => {
                                                         setSelectedColors(prev => [...prev, color.id]);
                                                     }
                                                 }}
-                                                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
-                                                    isSelected
-                                                        ? 'ring-2 ring-purple-500 ring-offset-1 bg-white shadow-md'
-                                                        : 'bg-white hover:shadow-sm border border-gray-200'
-                                                }`}
+                                                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${isSelected
+                                                    ? 'ring-2 ring-purple-500 ring-offset-1 bg-white shadow-md'
+                                                    : 'bg-white hover:shadow-sm border border-gray-200'
+                                                    }`}
                                             >
                                                 {/* Color Preview */}
                                                 <div className="flex -space-x-1">
@@ -1397,7 +1401,7 @@ const AppDetailPage = () => {
                                     )}
                                 </label>
                                 <p className="text-xs text-gray-500 mb-2">
-                                    {imageType === 'STORE_SCREENSHOT' 
+                                    {imageType === 'STORE_SCREENSHOT'
                                         ? 'Upload your app screenshots. The AI will create a beautiful store listing image featuring your app.'
                                         : 'Upload images to use as style reference, background inspiration, or design elements. Drag & drop or click to upload.'}
                                 </p>
@@ -1407,12 +1411,11 @@ const AppDetailPage = () => {
                                         <span className="text-sm text-amber-700">Please upload at least 1 app screenshot to generate a store image.</span>
                                     </div>
                                 )}
-                                <div 
-                                    className={`flex flex-wrap gap-3 items-center p-4 rounded-lg border-2 border-dashed transition ${
-                                        isDragging 
-                                            ? 'border-purple-500 bg-purple-50' 
-                                            : 'border-gray-300 bg-gray-50'
-                                    }`}
+                                <div
+                                    className={`flex flex-wrap gap-3 items-center p-4 rounded-lg border-2 border-dashed transition ${isDragging
+                                        ? 'border-purple-500 bg-purple-50'
+                                        : 'border-gray-300 bg-gray-50'
+                                        }`}
                                     onDragOver={handleDragOver}
                                     onDragLeave={handleDragLeave}
                                     onDrop={handleDrop}
@@ -1464,11 +1467,10 @@ const AppDetailPage = () => {
                                                 key={count}
                                                 type="button"
                                                 onClick={() => setImageCount(count)}
-                                                className={`px-4 py-2 text-sm font-medium transition ${
-                                                    imageCount === count
-                                                        ? 'bg-purple-600 text-white'
-                                                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                                                } ${count !== IMAGE_COUNT_OPTIONS[IMAGE_COUNT_OPTIONS.length - 1] ? 'border-r border-gray-300' : ''}`}
+                                                className={`px-4 py-2 text-sm font-medium transition ${imageCount === count
+                                                    ? 'bg-purple-600 text-white'
+                                                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                                                    } ${count !== IMAGE_COUNT_OPTIONS[IMAGE_COUNT_OPTIONS.length - 1] ? 'border-r border-gray-300' : ''}`}
                                             >
                                                 {count}
                                             </button>
@@ -1488,7 +1490,7 @@ const AppDetailPage = () => {
 
                             {/* Cost estimate */}
                             <p className="text-xs text-gray-400 mt-2">
-                                {selectedStyles.length} style{selectedStyles.length > 1 ? 's' : ''} × {imageCount} image{imageCount > 1 ? 's' : ''} = {selectedStyles.length * imageCount} total | 
+                                {selectedStyles.length} style{selectedStyles.length > 1 ? 's' : ''} × {imageCount} image{imageCount > 1 ? 's' : ''} = {selectedStyles.length * imageCount} total |
                                 Estimated cost: ~${(selectedStyles.length * imageCount * 0.02).toFixed(2)} USD
                             </p>
                         </div>
@@ -1520,18 +1522,16 @@ const AppDetailPage = () => {
                                     <button
                                         key={filter.id}
                                         onClick={() => setImageFilter(filter.id)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
-                                            imageFilter === filter.id
-                                                ? 'bg-indigo-600 text-white'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${imageFilter === filter.id
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
                                     >
                                         {filter.label}
-                                        <span className={`px-2 py-0.5 rounded-full text-xs ${
-                                            imageFilter === filter.id
-                                                ? 'bg-indigo-500 text-white'
-                                                : 'bg-gray-200 text-gray-600'
-                                        }`}>
+                                        <span className={`px-2 py-0.5 rounded-full text-xs ${imageFilter === filter.id
+                                            ? 'bg-indigo-500 text-white'
+                                            : 'bg-gray-200 text-gray-600'
+                                            }`}>
                                             {filter.count}
                                         </span>
                                     </button>
@@ -1570,63 +1570,63 @@ const AppDetailPage = () => {
                                     {appImages
                                         .filter(image => imageFilter === 'ALL' || image.imageType === imageFilter)
                                         .map((image) => (
-                                        <div key={image.id} className="border border-gray-200 rounded-lg overflow-hidden relative">
-                                            {/* Action buttons - always visible, top right */}
-                                            <div className="absolute top-2 right-2 z-10 flex gap-1">
-                                                <button
-                                                    onClick={() => handleDownloadImage(image.cloudinaryUrl, `${document.appName}-${image.imageType}.png`)}
-                                                    className="p-2 bg-white/90 rounded-lg hover:bg-white shadow-sm transition"
-                                                    title="Download"
-                                                >
-                                                    <Download className="w-4 h-4 text-gray-700" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteImage(image.id)}
-                                                    className="p-2 bg-white/90 rounded-lg hover:bg-red-50 shadow-sm transition"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="w-4 h-4 text-red-600" />
-                                                </button>
-                                            </div>
-                                            
-                                            {/* Clickable image area */}
-                                            <div 
-                                                className="aspect-square bg-gray-100 cursor-pointer"
-                                                onClick={() => setLightboxImage(image.cloudinaryUrl)}
-                                            >
-                                                <img
-                                                    src={image.cloudinaryUrl}
-                                                    alt={getImageTypeLabel(image.imageType)}
-                                                    className="w-full h-full object-contain"
-                                                />
-                                            </div>
-                                            <div className="p-4">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
-                                                            {getImageTypeLabel(image.imageType)}
-                                                        </span>
-                                                        {image.style && (
-                                                            <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium capitalize">
-                                                                {image.style}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <span className="text-xs text-gray-500">
-                                                        {image.width}x{image.height}
-                                                    </span>
+                                            <div key={image.id} className="border border-gray-200 rounded-lg overflow-hidden relative">
+                                                {/* Action buttons - always visible, top right */}
+                                                <div className="absolute top-2 right-2 z-10 flex gap-1">
+                                                    <button
+                                                        onClick={() => handleDownloadImage(image.cloudinaryUrl, `${document.appName}-${image.imageType}.png`)}
+                                                        className="p-2 bg-white/90 rounded-lg hover:bg-white shadow-sm transition"
+                                                        title="Download"
+                                                    >
+                                                        <Download className="w-4 h-4 text-gray-700" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteImage(image.id)}
+                                                        className="p-2 bg-white/90 rounded-lg hover:bg-red-50 shadow-sm transition"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="w-4 h-4 text-red-600" />
+                                                    </button>
                                                 </div>
-                                                {image.prompt && (
-                                                    <p className="text-sm text-gray-600 truncate" title={image.prompt}>
-                                                        {image.prompt}
+
+                                                {/* Clickable image area */}
+                                                <div
+                                                    className="aspect-square bg-gray-100 cursor-pointer"
+                                                    onClick={() => setLightboxImage(image.cloudinaryUrl)}
+                                                >
+                                                    <img
+                                                        src={image.cloudinaryUrl}
+                                                        alt={getImageTypeLabel(image.imageType)}
+                                                        className="w-full h-full object-contain"
+                                                    />
+                                                </div>
+                                                <div className="p-4">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
+                                                                {getImageTypeLabel(image.imageType)}
+                                                            </span>
+                                                            {image.style && (
+                                                                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium capitalize">
+                                                                    {image.style}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">
+                                                            {image.width}x{image.height}
+                                                        </span>
+                                                    </div>
+                                                    {image.prompt && (
+                                                        <p className="text-sm text-gray-600 truncate" title={image.prompt}>
+                                                            {image.prompt}
+                                                        </p>
+                                                    )}
+                                                    <p className="text-xs text-gray-400 mt-2">
+                                                        {new Date(image.createdAt).toLocaleDateString('en-US')}
                                                     </p>
-                                                )}
-                                                <p className="text-xs text-gray-400 mt-2">
-                                                    {new Date(image.createdAt).toLocaleDateString('en-US')}
-                                                </p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
                                 </div>
                             )}
                         </div>
@@ -1893,7 +1893,7 @@ const AppDetailPage = () => {
                                                 <span className="text-purple-700 font-medium">Avg Cost/Request</span>
                                             </div>
                                             <p className="text-3xl font-bold text-purple-800">
-                                                ${usageData.documentUsage.totalRequests > 0 
+                                                ${usageData.documentUsage.totalRequests > 0
                                                     ? (usageData.documentUsage.totalCost / usageData.documentUsage.totalRequests).toFixed(4)
                                                     : '0.0000'}
                                             </p>
@@ -1923,11 +1923,10 @@ const AppDetailPage = () => {
                                                         {usageData.documentUsage.history.map((item, index) => (
                                                             <tr key={index} className="hover:bg-gray-50">
                                                                 <td className="py-3 px-4">
-                                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                                                        item.usageType === 'IMAGE_GENERATION'
-                                                                            ? 'bg-purple-100 text-purple-700'
-                                                                            : 'bg-blue-100 text-blue-700'
-                                                                    }`}>
+                                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${item.usageType === 'IMAGE_GENERATION'
+                                                                        ? 'bg-purple-100 text-purple-700'
+                                                                        : 'bg-blue-100 text-blue-700'
+                                                                        }`}>
                                                                         {item.usageType === 'IMAGE_GENERATION' ? 'Image' : 'Document'}
                                                                     </span>
                                                                 </td>
@@ -1991,7 +1990,7 @@ const AppDetailPage = () => {
 
             {/* Image Lightbox Modal */}
             {lightboxImage && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
                     onClick={() => setLightboxImage(null)}
                 >
