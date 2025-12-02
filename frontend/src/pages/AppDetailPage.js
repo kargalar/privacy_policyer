@@ -15,7 +15,7 @@ import {
     GENERATE_DOCUMENTS_FOR_APP_MUTATION,
 } from '../graphql/queries';
 import { useAuth } from '../context/AuthContext';
-import { questions as staticQuestions, shouldShowQuestion, getQuestionsBySection } from '../data/questions';
+import { questions as staticQuestions, getQuestionsBySection } from '../data/questions';
 import {
     AlertCircle,
     Loader,
@@ -30,7 +30,6 @@ import {
     Edit2,
     X,
     Check,
-    LogOut,
     FileText,
     Image,
     Smartphone,
@@ -88,7 +87,7 @@ const COLOR_OPTIONS = [
 const AppDetailPage = () => {
     const { id, tab: urlTab } = useParams();
     const navigate = useNavigate();
-    const { isAuthenticated, user, logout } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const [mainTab, setMainTab] = useState(urlTab || 'documents');
     const [documentTab, setDocumentTab] = useState('privacy');
     const [copiedUrl, setCopiedUrl] = useState(null);
@@ -164,6 +163,7 @@ const AppDetailPage = () => {
         if (documentData?.document?.longDescription && !generatedLongDesc) {
             setGeneratedLongDesc(documentData.document.longDescription);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [documentData]);
 
     const [publishDocument, { loading: publishing }] = useMutation(PUBLISH_DOCUMENT_MUTATION, {
@@ -760,7 +760,6 @@ const AppDetailPage = () => {
                                     <div className="mb-6">
                                         {(() => {
                                             const sections = getQuestionsBySection(documentAnswers);
-                                            const sectionNames = Object.keys(sections);
                                             const totalVisible = Object.values(sections).flat().length;
                                             const answered = Object.keys(documentAnswers).filter(k => documentAnswers[k] !== '').length;
                                             return (
