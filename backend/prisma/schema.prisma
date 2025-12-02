@@ -46,6 +46,7 @@ model Document {
   id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId           String   @map("user_id") @db.Uuid
   appName          String   @map("app_name")
+  appDescription   String?  @map("app_description")
   privacyPolicy    String?  @map("privacy_policy")
   termsOfService   String?  @map("terms_of_service")
   status           String   @default("DRAFT")
@@ -54,6 +55,7 @@ model Document {
 
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   deleteRequests   DeleteRequest[]
+  appImages        AppImage[]
 
   @@map("documents")
 }
@@ -67,5 +69,21 @@ model DeleteRequest {
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@map("delete_requests")
+}
+
+model AppImage {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentId     String   @map("document_id") @db.Uuid
+  imageType      String   @map("image_type") // APP_ICON, FEATURE_GRAPHIC, STORE_SCREENSHOT
+  prompt         String?
+  cloudinaryUrl  String   @map("cloudinary_url")
+  cloudinaryId   String   @map("cloudinary_id")
+  width          Int?
+  height         Int?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("app_images")
 }
 

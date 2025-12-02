@@ -9,8 +9,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CreatePage from './pages/CreatePage';
-import DocumentsPage from './pages/DocumentsPage';
-import DocumentPage from './pages/DocumentPage';
+import AppsPage from './pages/AppsPage';
+import AppDetailPage from './pages/AppDetailPage';
 import DeleteRequestPage from './pages/DeleteRequestPage';
 import AdminPage from './pages/AdminPage';
 import ApprovalPage from './pages/ApprovalPage';
@@ -41,30 +41,44 @@ function App() {
                             }
                         />
 
+                        {/* Apps Routes (formerly Documents) */}
                         <Route
-                            path="/documents"
+                            path="/apps"
                             element={
                                 <ProtectedRoute>
-                                    <DocumentsPage />
+                                    <AppsPage />
                                 </ProtectedRoute>
                             }
                         />
 
                         <Route
-                            path="/documents/:id"
+                            path="/apps/:id"
                             element={
                                 <ProtectedRoute>
-                                    <DocumentPage />
+                                    <AppDetailPage />
                                 </ProtectedRoute>
                             }
                         />
 
                         <Route
-                            path="/documents/:appName/delete-request"
+                            path="/apps/:id/:tab"
+                            element={
+                                <ProtectedRoute>
+                                    <AppDetailPage />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        <Route
+                            path="/apps/:appName/delete-request"
                             element={
                                 <DeleteRequestPage />
                             }
                         />
+
+                        {/* Legacy route redirects */}
+                        <Route path="/documents" element={<Navigate to="/apps" replace />} />
+                        <Route path="/documents/:id" element={<Navigate to="/apps" replace />} />
 
                         <Route
                             path="/admin"
@@ -85,8 +99,8 @@ function App() {
                         />
 
                         {/* Default Route */}
-                        <Route path="/" element={<Navigate to="/documents" />} />
-                        <Route path="*" element={<Navigate to="/documents" />} />
+                        <Route path="/" element={<Navigate to="/apps" />} />
+                        <Route path="*" element={<Navigate to="/apps" />} />
                     </Routes>
                 </Router>
             </AuthProvider>

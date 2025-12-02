@@ -1,6 +1,7 @@
 import * as userService from '../services/userService.js';
 import * as questionService from '../services/questionService.js';
 import * as documentService from '../services/documentService.js';
+import * as imageService from '../services/imageService.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 export const resolvers = {
@@ -88,6 +89,35 @@ export const resolvers = {
             }
 
             return doc;
+        },
+
+        // App Images queries
+        appImages: async (_, { documentId }, context) => {
+            const user = requireAuth(context);
+            const doc = await documentService.getDocumentById(documentId);
+
+            if (!doc || doc.userId !== user.id) {
+                throw new Error('Document not found or access denied');
+            }
+
+            return await imageService.getImagesByDocumentId(documentId);
+        },
+
+        appImage: async (_, { id }, context) => {
+            const user = requireAuth(context);
+            const image = await imageService.getImageById(id);
+
+            if (!image) {
+                throw new Error('Image not found');
+            }
+
+            // Verify ownership through document
+            const doc = await documentService.getDocumentById(image.documentId);
+            if (!doc || doc.userId !== user.id) {
+                throw new Error('Access denied');
+            }
+
+            return image;
         },
     },
 
@@ -243,7 +273,7 @@ export const resolvers = {
             };
         },
 
-        updateDocument: async (_, { documentId, appName, privacyPolicy, termsOfService }, context) => {
+        updateDocument: async (_, { documentId, appName, appDescription, privacyPolicy, termsOfService }, context) => {
             const user = requireAuth(context);
             const doc = await documentService.getDocumentById(documentId);
 
@@ -259,6 +289,7 @@ export const resolvers = {
             const updated = await documentService.updateDocument(
                 documentId,
                 appName,
+                appDescription,
                 privacyPolicy,
                 termsOfService
             );
@@ -267,6 +298,7 @@ export const resolvers = {
                 id: updated.id,
                 userId: updated.user_id,
                 appName: updated.app_name,
+                appDescription: updated.app_description,
                 privacyPolicy: updated.privacy_policy,
                 termsOfService: updated.terms_of_service,
                 status: updated.status,
@@ -299,6 +331,35 @@ export const resolvers = {
                 status: user.status,
                 createdAt: userData?.created_at ? new Date(userData.created_at).toISOString() : new Date().toISOString(),
             };
+        },
+
+        // App Image mutations
+        generateAppImage: async (_, { documentId, imageType, style, prompt, referenceImages, transparentBackground }, context) => {
+            const user = requireAuth(context);
+            const doc = await documentService.getDocumentById(documentId);
+
+            if (!doc || doc.userId !== user.id) {
+                throw new Error('Document not found or access denied');
+            }
+
+            return await imageService.createAppImage(documentId, imageType, style || 'modern', prompt || '', referenceImages || [], transparentBackground || false);
+        },
+
+        deleteAppImage: async (_, { imageId }, context) => {
+            const user = requireAuth(context);
+            const image = await imageService.getImageById(imageId);
+
+            if (!image) {
+                throw new Error('Image not found');
+            }
+
+            // Verify ownership through document
+            const doc = await documentService.getDocumentById(image.documentId);
+            if (!doc || doc.userId !== user.id) {
+                throw new Error('Access denied');
+            }
+
+            return await imageService.deleteAppImage(imageId);
         },
     },
 };

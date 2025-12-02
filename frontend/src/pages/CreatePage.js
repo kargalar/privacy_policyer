@@ -23,8 +23,8 @@ const CreatePage = () => {
         {
             onCompleted: (data) => {
                 console.log('✓ Document created:', data);
-                // Hemen document page'e yönlendir
-                navigate(`/documents/${data.generateDocuments.id}`);
+                // Hemen app detail page'e yönlendir
+                navigate(`/apps/${data.generateDocuments.id}`);
             },
             onError: (error) => {
                 console.error('✗ Error creating document:', error);
@@ -34,7 +34,7 @@ const CreatePage = () => {
     );
 
     if (!isAuthenticated || (user?.status !== 'APPROVED' && user?.status !== 'ADMIN')) {
-        navigate('/documents');
+        navigate('/apps');
         return null;
     }
 

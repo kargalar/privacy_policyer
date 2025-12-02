@@ -1,18 +1,7 @@
-autologin
-loginken login sayfasınaveya register gidememeli
+Documents create date "invalid" gösteriliyor - Düzeltilmeli
 
-dökümn oltura bastığım anda dökümanalrım sayfasına gitsin ve orada dökümanını sayfasına gidebileiy.mama md oluşturuladmığı için gösteirlemyecek birkaç dakika içinde hazırlanacak yazısı gösterielcek. 
+app manager kısmında sekmenin ismi app ismi olsun
 
-dökümanalr düzenlenebielcek
+Döküman silindikten sonra dökümanlar sayfasında anında kaybolsun
 
-mail adresini uyuglama adını flaan her zmana doldurmuyor rpomtu güncelle
-
-promt daihl her şey inilizce yap
-
-üstteki 2. headeri kaldır
-
-documents create date herp invalid gösterilyiro.
-
-yayınlanmış sayfanıın sekme kısmındaki ismi uygulamaın ismi olsun
-
-döküman silindiken sonra dökğmanlar sayfasında anında kaybolsun
+Kullanıcının kullandığı API ücreti yazsın (döküman ve görseller için)

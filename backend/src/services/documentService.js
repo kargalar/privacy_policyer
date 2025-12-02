@@ -67,7 +67,7 @@ export const getUserDocuments = async (userId) => {
 export const getDocumentById = async (documentId) => {
     try {
         const result = await pool.query(
-            `SELECT id, user_id, app_name, privacy_policy, terms_of_service, status, created_at, updated_at 
+            `SELECT id, user_id, app_name, app_description, privacy_policy, terms_of_service, status, created_at, updated_at 
        FROM documents 
        WHERE id = $1`,
             [documentId]
@@ -86,6 +86,7 @@ export const getDocumentById = async (documentId) => {
             id: row.id,
             userId: row.user_id,
             appName: row.app_name,
+            appDescription: row.app_description,
             privacyPolicy: row.privacy_policy,
             termsOfService: row.terms_of_service,
             status: row.status,
@@ -188,14 +189,14 @@ export const unpublishDocument = async (documentId) => {
     }
 };
 
-export const updateDocument = async (documentId, appName, privacyPolicy, termsOfService) => {
+export const updateDocument = async (documentId, appName, appDescription, privacyPolicy, termsOfService) => {
     try {
         const result = await pool.query(
             `UPDATE documents 
-       SET app_name = $1, privacy_policy = $2, terms_of_service = $3, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $4 
-       RETURNING id, user_id, app_name, privacy_policy, terms_of_service, status, created_at, updated_at`,
-            [appName, privacyPolicy, termsOfService, documentId]
+       SET app_name = $1, app_description = $2, privacy_policy = $3, terms_of_service = $4, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $5 
+       RETURNING id, user_id, app_name, app_description, privacy_policy, terms_of_service, status, created_at, updated_at`,
+            [appName, appDescription || null, privacyPolicy, termsOfService, documentId]
         );
 
         if (result.rows.length === 0) {

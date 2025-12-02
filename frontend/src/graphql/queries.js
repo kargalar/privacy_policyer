@@ -80,6 +80,7 @@ export const GET_DOCUMENT_QUERY = gql`
     document(id: $id) {
       id
       appName
+      appDescription
       privacyPolicy
       termsOfService
       status
@@ -104,10 +105,11 @@ export const APPROVE_DOCUMENT_MUTATION = gql`
 `;
 
 export const UPDATE_DOCUMENT_MUTATION = gql`
-  mutation UpdateDocument($documentId: ID!, $appName: String!, $privacyPolicy: String!, $termsOfService: String!) {
-    updateDocument(documentId: $documentId, appName: $appName, privacyPolicy: $privacyPolicy, termsOfService: $termsOfService) {
+  mutation UpdateDocument($documentId: ID!, $appName: String!, $appDescription: String, $privacyPolicy: String!, $termsOfService: String!) {
+    updateDocument(documentId: $documentId, appName: $appName, appDescription: $appDescription, privacyPolicy: $privacyPolicy, termsOfService: $termsOfService) {
       id
       appName
+      appDescription
       privacyPolicy
       termsOfService
       status
@@ -189,5 +191,44 @@ export const CREATE_DELETE_REQUEST_MUTATION = gql`
       email
       createdAt
     }
+  }
+`;
+
+// App Images Queries and Mutations
+export const GET_APP_IMAGES_QUERY = gql`
+  query GetAppImages($documentId: ID!) {
+    appImages(documentId: $documentId) {
+      id
+      documentId
+      imageType
+      prompt
+      cloudinaryUrl
+      cloudinaryId
+      width
+      height
+      createdAt
+    }
+  }
+`;
+
+export const GENERATE_APP_IMAGE_MUTATION = gql`
+  mutation GenerateAppImage($documentId: ID!, $imageType: String!, $style: String, $prompt: String, $referenceImages: [String], $transparentBackground: Boolean) {
+    generateAppImage(documentId: $documentId, imageType: $imageType, style: $style, prompt: $prompt, referenceImages: $referenceImages, transparentBackground: $transparentBackground) {
+      id
+      documentId
+      imageType
+      prompt
+      cloudinaryUrl
+      cloudinaryId
+      width
+      height
+      createdAt
+    }
+  }
+`;
+
+export const DELETE_APP_IMAGE_MUTATION = gql`
+  mutation DeleteAppImage($imageId: ID!) {
+    deleteAppImage(imageId: $imageId)
   }
 `;

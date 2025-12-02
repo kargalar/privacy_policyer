@@ -50,7 +50,7 @@ const ApprovalPage = () => {
     );
 
     if (!isAuthenticated || user?.status !== 'ADMIN') {
-        navigate('/documents');
+        navigate('/apps');
         return null;
     }
 
@@ -106,7 +106,7 @@ const ApprovalPage = () => {
                 <div className="max-w-7xl mx-auto px-4 py-6">
                     <div className="flex items-center gap-4 mb-2">
                         <button
-                            onClick={() => navigate('/documents')}
+                            onClick={() => navigate('/apps')}
                             className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700"
                         >
                             <ArrowLeft className="w-4 h-4" />

@@ -115,7 +115,8 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
 }));
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '15mb' }));
+app.use(bodyParser.urlencoded({ limit: '15mb', extended: true }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -214,6 +215,8 @@ const startServer = async () => {
 
     app.use(
       '/graphql',
+      bodyParser.json({ limit: '15mb' }),
+      bodyParser.urlencoded({ limit: '15mb', extended: true }),
       expressMiddleware(server, {
         context: async ({ req }) => ({ req }),
       })

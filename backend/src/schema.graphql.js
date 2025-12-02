@@ -20,6 +20,12 @@ export const typeDefs = `#graphql
     EMAIL
   }
 
+  enum ImageType {
+    APP_ICON
+    FEATURE_GRAPHIC
+    STORE_SCREENSHOT
+  }
+
   type User {
     id: ID!
     email: String!
@@ -42,18 +48,32 @@ export const typeDefs = `#graphql
     id: ID!
     userId: ID!
     appName: String!
+    appDescription: String
     privacyPolicy: String
     termsOfService: String
     status: DocumentStatus!
     createdAt: String!
     updatedAt: String!
     deleteRequests: [DeleteRequest!]!
+    appImages: [AppImage!]!
   }
 
   type DeleteRequest {
     id: ID!
     documentId: ID!
     email: String!
+    createdAt: String!
+  }
+
+  type AppImage {
+    id: ID!
+    documentId: ID!
+    imageType: String!
+    prompt: String
+    cloudinaryUrl: String!
+    cloudinaryId: String!
+    width: Int
+    height: Int
     createdAt: String!
   }
 
@@ -69,10 +89,14 @@ export const typeDefs = `#graphql
     # Questions
     questions: [Question!]!
     
-    # Documents
+    # Documents / Apps
     myDocuments: [Document!]!
     document(id: ID!): Document
     documentByApp(appName: String!): Document
+    
+    # App Images
+    appImages(documentId: ID!): [AppImage!]!
+    appImage(id: ID!): AppImage
     
     # Public Documents (no auth required)
     publicDocument(username: String!, appName: String!): Document
@@ -90,10 +114,14 @@ export const typeDefs = `#graphql
     # Documents
     generateDocuments(appName: String!, answers: [AnswerInput!]!): Document!
     approveDocument(documentId: ID!): Document!
-    updateDocument(documentId: ID!, appName: String!, privacyPolicy: String!, termsOfService: String!): Document!
+    updateDocument(documentId: ID!, appName: String!, appDescription: String, privacyPolicy: String!, termsOfService: String!): Document!
     publishDocument(documentId: ID!): Document!
     unpublishDocument(documentId: ID!): Document!
     deleteDocument(documentId: ID!): Boolean!
+    
+    # App Images
+    generateAppImage(documentId: ID!, imageType: String!, style: String, prompt: String, referenceImages: [String], transparentBackground: Boolean): AppImage!
+    deleteAppImage(imageId: ID!): Boolean!
     
     # Delete Requests
     createDeleteRequest(appName: String!, email: String!): DeleteRequest!
