@@ -66,6 +66,22 @@ const STYLE_OPTIONS = [
 // Image count options
 const IMAGE_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6];
 
+// Color options for image generation
+const COLOR_OPTIONS = [
+    { id: 'colorful', name: 'Colorful', colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'], emoji: '🌈' },
+    { id: 'red', name: 'Red', colors: ['#E74C3C', '#C0392B'], emoji: '❤️' },
+    { id: 'orange', name: 'Orange', colors: ['#E67E22', '#D35400'], emoji: '🧡' },
+    { id: 'yellow', name: 'Yellow', colors: ['#F1C40F', '#F39C12'], emoji: '💛' },
+    { id: 'green', name: 'Green', colors: ['#2ECC71', '#27AE60'], emoji: '💚' },
+    { id: 'blue', name: 'Blue', colors: ['#3498DB', '#2980B9'], emoji: '💙' },
+    { id: 'purple', name: 'Purple', colors: ['#9B59B6', '#8E44AD'], emoji: '💜' },
+    { id: 'pink', name: 'Pink', colors: ['#E91E63', '#C2185B'], emoji: '💗' },
+    { id: 'black', name: 'Black', colors: ['#2C3E50', '#1A252F'], emoji: '🖤' },
+    { id: 'white', name: 'White', colors: ['#ECF0F1', '#BDC3C7'], emoji: '🤍' },
+    { id: 'gold', name: 'Gold', colors: ['#FFD700', '#DAA520'], emoji: '✨' },
+    { id: 'silver', name: 'Silver', colors: ['#C0C0C0', '#A8A8A8'], emoji: '🩶' },
+];
+
 const AppDetailPage = () => {
     const { id, tab: urlTab } = useParams();
     const navigate = useNavigate();
@@ -84,7 +100,10 @@ const AppDetailPage = () => {
     // Image generation state
     const [imageType, setImageType] = useState('APP_ICON');
     const [selectedStyles, setSelectedStyles] = useState(['origami']); // Multiple styles can be selected
+    const [selectedColors, setSelectedColors] = useState([]); // Multiple colors can be selected
     const [imagePrompt, setImagePrompt] = useState('');
+    const [requiredText, setRequiredText] = useState(''); // Text that must appear in the image
+    const [onlyRequiredText, setOnlyRequiredText] = useState(false); // Only include required text, no other text
     const [referenceImages, setReferenceImages] = useState([]);
     const [generatingCount, setGeneratingCount] = useState(0); // Track number of images being generated
     const [transparentBackground, setTransparentBackground] = useState(false); // For app icons
@@ -322,7 +341,10 @@ const AppDetailPage = () => {
                 documentId: id,
                 imageType,
                 styles: selectedStyles,
+                colors: selectedColors.length > 0 ? selectedColors : null,
                 prompt: imagePrompt,
+                requiredText: requiredText.trim() || null,
+                onlyRequiredText: onlyRequiredText,
                 referenceImages: referenceImages.length > 0 ? referenceImages : null,
                 transparentBackground: imageType === 'APP_ICON' ? transparentBackground : false,
                 count: imageCount,
@@ -511,36 +533,53 @@ const AppDetailPage = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Top Navbar */}
-            <nav className="bg-white border-b border-gray-200">
-                <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-                    <div className="text-gray-600 text-sm">App Manager</div>
-                    <div className="flex items-center gap-4">
-                        <div className="text-right">
-                            <p className="text-xs text-gray-500">User</p>
-                            <p className="text-sm font-semibold text-gray-900">@{user?.username}</p>
-                        </div>
-                        <button
-                            onClick={() => {
-                                logout();
-                                navigate('/login');
-                            }}
-                            className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                            title="Sign Out"
-                        >
-                            <LogOut className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            </nav>
-
             {/* Page Title */}
             <title>{document.appName} - App Manager</title>
 
-            {/* Tab Navigation */}
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="flex gap-4 border-b border-gray-200">
+            {/* Header */}
+            <header className="bg-white shadow">
+                <div className="max-w-7xl mx-auto px-4 py-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <button
+                                onClick={() => navigate('/apps')}
+                                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-3"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                Back to Apps
+                            </button>
+                            <div className="flex items-center gap-3">
+                                <Smartphone className="w-8 h-8 text-indigo-600" />
+                                <div>
+                                    <h1 className="text-3xl font-bold text-gray-900">{document.appName}</h1>
+                                    <p className="text-gray-600 mt-1">
+                                        Created: {new Date(document.createdAt).toLocaleDateString('en-US')}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {document.status === 'DRAFT' && (
+                                <span className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium">Draft</span>
+                            )}
+                            {document.status === 'APPROVED' && (
+                                <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg font-medium flex items-center gap-2">
+                                    <CheckCircle className="w-4 h-4" />
+                                    Approved
+                                </span>
+                            )}
+                            {document.status === 'PUBLISHED' && (
+                                <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium flex items-center gap-2">
+                                    <Globe className="w-4 h-4" />
+                                    Published
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Main Tab Navigation */}
+                    <div className="mt-6 flex gap-4 border-b border-gray-200">
                         <button
                             onClick={() => {
                                 setMainTab('documents');
@@ -610,7 +649,7 @@ const AppDetailPage = () => {
                         </button>
                     </div>
                 </div>
-            </div>
+            </header>
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 py-8">
@@ -999,6 +1038,88 @@ const AppDetailPage = () => {
                                         );
                                     })}
                                 </div>
+                            </div>
+
+                            {/* Color Selection Grid - Multiple Selection */}
+                            <div className="mb-6">
+                                <div className="flex items-center justify-between mb-3">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Select Colors <span className="text-gray-400">(optional)</span>
+                                    </label>
+                                    {selectedColors.length > 0 && (
+                                        <button
+                                            onClick={() => setSelectedColors([])}
+                                            className="text-xs text-gray-500 hover:text-gray-700"
+                                        >
+                                            Clear all
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {COLOR_OPTIONS.map((color) => {
+                                        const isSelected = selectedColors.includes(color.id);
+                                        return (
+                                            <button
+                                                key={color.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        setSelectedColors(prev => prev.filter(c => c !== color.id));
+                                                    } else {
+                                                        setSelectedColors(prev => [...prev, color.id]);
+                                                    }
+                                                }}
+                                                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
+                                                    isSelected
+                                                        ? 'ring-2 ring-purple-500 ring-offset-1 bg-white shadow-md'
+                                                        : 'bg-white hover:shadow-sm border border-gray-200'
+                                                }`}
+                                            >
+                                                {/* Color Preview */}
+                                                <div className="flex -space-x-1">
+                                                    {color.colors.slice(0, 3).map((c, i) => (
+                                                        <div
+                                                            key={i}
+                                                            className="w-5 h-5 rounded-full border-2 border-white shadow-sm"
+                                                            style={{ backgroundColor: c }}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <span className="text-xs font-medium text-gray-700">{color.emoji} {color.name}</span>
+                                                {isSelected && (
+                                                    <Check className="w-3 h-3 text-purple-600" />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Required Text Input */}
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Required Text <span className="text-gray-400">(text that must appear in the image)</span>
+                                </label>
+                                <div className="flex gap-3">
+                                    <input
+                                        type="text"
+                                        value={requiredText}
+                                        onChange={(e) => setRequiredText(e.target.value)}
+                                        placeholder="e.g., Download Now, 50% OFF, New Features..."
+                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    />
+                                </div>
+                                {requiredText.trim() && (
+                                    <label className="flex items-center gap-2 cursor-pointer mt-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={onlyRequiredText}
+                                            onChange={(e) => setOnlyRequiredText(e.target.checked)}
+                                            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                        />
+                                        <span className="text-sm text-gray-700">Only include this text (no app name or other text)</span>
+                                    </label>
+                                )}
                             </div>
 
                             {/* Image Options */}

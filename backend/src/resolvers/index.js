@@ -352,7 +352,7 @@ export const resolvers = {
         },
 
         // App Image mutations
-        generateAppImage: async (_, { documentId, imageType, styles, prompt, referenceImages, transparentBackground, count, includeText, includeAppName }, context) => {
+        generateAppImage: async (_, { documentId, imageType, styles, colors, prompt, requiredText, onlyRequiredText, referenceImages, transparentBackground, count, includeText, includeAppName }, context) => {
             const user = requireAuth(context);
             const doc = await documentService.getDocumentById(documentId);
 
@@ -371,7 +371,10 @@ export const resolvers = {
                         documentId, 
                         imageType, 
                         style, 
+                        colors || [],
                         prompt || '', 
+                        requiredText || '',
+                        onlyRequiredText || false,
                         referenceImages || [], 
                         transparentBackground || false,
                         user.id, // Pass userId for API usage tracking

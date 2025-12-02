@@ -42,7 +42,10 @@ export const getImageById = async (imageId) => {
  * @param {string} documentId
  * @param {string} imageType - APP_ICON, FEATURE_GRAPHIC, STORE_SCREENSHOT
  * @param {string} style - Style preference
+ * @param {string[]} colors - Color preferences
  * @param {string} prompt - Additional prompt details
+ * @param {string} requiredText - Text that must appear in the image
+ * @param {boolean} onlyRequiredText - Only include required text, no other text
  * @param {string[]} referenceImages - Base64 encoded reference images
  * @param {boolean} transparentBackground - Whether to use transparent background (for icons)
  * @param {string} userId - User ID for API usage tracking
@@ -50,7 +53,7 @@ export const getImageById = async (imageId) => {
  * @param {boolean} includeAppName - Whether to include app name (for feature graphics)
  * @returns {Promise<Object>}
  */
-export const createAppImage = async (documentId, imageType, style = 'origami', prompt = '', referenceImages = [], transparentBackground = false, userId = null, includeText = false, includeAppName = true) => {
+export const createAppImage = async (documentId, imageType, style = 'origami', colors = [], prompt = '', requiredText = '', onlyRequiredText = false, referenceImages = [], transparentBackground = false, userId = null, includeText = false, includeAppName = true) => {
     // Get document info for app name and description
     const docResult = await pool.query(
         `SELECT app_name, app_description, user_id FROM documents WHERE id = $1`,
@@ -70,7 +73,10 @@ export const createAppImage = async (documentId, imageType, style = 'origami', p
         document.app_name,
         document.app_description || '',
         style,
+        colors,
         prompt,
+        requiredText,
+        onlyRequiredText,
         documentId,
         referenceImages,
         transparentBackground,

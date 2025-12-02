@@ -179,7 +179,7 @@ export const typeDefs = `#graphql
     deleteDocument(documentId: ID!): Boolean!
     
     # App Images - styles array for multi-style generation, count per style
-    generateAppImage(documentId: ID!, imageType: String!, styles: [String!], prompt: String, referenceImages: [String], transparentBackground: Boolean, count: Int, includeText: Boolean, includeAppName: Boolean): [AppImage!]!
+    generateAppImage(documentId: ID!, imageType: String!, styles: [String!], colors: [String!], prompt: String, requiredText: String, onlyRequiredText: Boolean, referenceImages: [String], transparentBackground: Boolean, count: Int, includeText: Boolean, includeAppName: Boolean): [AppImage!]!
     deleteAppImage(imageId: ID!): Boolean!
     
     # Delete Requests
