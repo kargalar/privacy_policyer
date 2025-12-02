@@ -1,1 +1,3 @@
 pricing kısmı galiba şaun gerçek değil. ya gerçek osun ya da gerçeğe en yakın olsun.??
+
+usage history kısmında date de invalid date yazıyor hepsinde. 

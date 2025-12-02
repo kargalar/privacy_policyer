@@ -2,6 +2,52 @@ import pool from '../utils/database.js';
 import { v4 as uuidv4 } from 'uuid';
 import { generateDocuments } from './geminiService.js';
 
+// Check if a user already has an app with the same name
+export const checkDuplicateAppName = async (userId, appName) => {
+    try {
+        const result = await pool.query(
+            `SELECT id FROM documents WHERE user_id = $1 AND LOWER(app_name) = LOWER($2) LIMIT 1`,
+            [userId, appName]
+        );
+        return result.rows.length > 0;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Create app with just a name (no documents generated yet)
+export const createApp = async (userId, appName) => {
+    try {
+        // Check for duplicate app name
+        const isDuplicate = await checkDuplicateAppName(userId, appName);
+        if (isDuplicate) {
+            throw new Error('You already have an app with this name');
+        }
+
+        // Create app without privacy policy and terms of service
+        const result = await pool.query(
+            `INSERT INTO documents (id, user_id, app_name, status, created_at, updated_at) 
+       VALUES ($1, $2, $3, 'DRAFT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+       RETURNING id, user_id, app_name, status, created_at, updated_at`,
+            [uuidv4(), userId, appName]
+        );
+
+        console.log('✓ App created:', result.rows[0].id);
+
+        return {
+            id: result.rows[0].id,
+            userId: result.rows[0].user_id,
+            appName: result.rows[0].app_name,
+            status: result.rows[0].status,
+            createdAt: result.rows[0].created_at,
+            updatedAt: result.rows[0].updated_at,
+        };
+    } catch (error) {
+        console.error('DocumentService.createApp Error:', error.message);
+        throw error;
+    }
+};
+
 export const createDocument = async (userId, appName, appData) => {
     try {
         // Gemini ile dokümanları oluştur
@@ -107,6 +153,52 @@ export const getDocumentById = async (documentId) => {
             deleteRequests: deleteRequests,
         };
     } catch (error) {
+        throw error;
+    }
+};
+
+// Generate documents for an existing app
+export const generateDocumentsForApp = async (documentId, appData) => {
+    try {
+        // Get existing document to get app name
+        const doc = await getDocumentById(documentId);
+        if (!doc) {
+            throw new Error('Document not found');
+        }
+
+        console.log('Generating documents for existing app with Gemini API...');
+        console.log('AppData received:', appData);
+
+        const { privacyPolicy, termsOfService } = await generateDocuments({
+            appName: doc.appName,
+            ...appData,
+        });
+
+        console.log('✓ Documents generated successfully');
+
+        // Update the existing document with generated content
+        const result = await pool.query(
+            `UPDATE documents 
+             SET privacy_policy = $1, terms_of_service = $2, updated_at = CURRENT_TIMESTAMP 
+             WHERE id = $3 
+             RETURNING id, user_id, app_name, privacy_policy, terms_of_service, status, created_at, updated_at`,
+            [privacyPolicy, termsOfService, documentId]
+        );
+
+        console.log('✓ Document updated with generated content:', result.rows[0].id);
+
+        return {
+            id: result.rows[0].id,
+            userId: result.rows[0].user_id,
+            appName: result.rows[0].app_name,
+            privacyPolicy: result.rows[0].privacy_policy,
+            termsOfService: result.rows[0].terms_of_service,
+            status: result.rows[0].status,
+            createdAt: result.rows[0].created_at,
+            updatedAt: result.rows[0].updated_at,
+        };
+    } catch (error) {
+        console.error('DocumentService.generateDocumentsForApp Error:', error.message);
         throw error;
     }
 };

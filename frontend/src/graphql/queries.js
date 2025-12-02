@@ -50,6 +50,30 @@ export const GET_QUESTIONS_QUERY = gql`
   }
 `;
 
+export const CREATE_APP_MUTATION = gql`
+  mutation CreateApp($appName: String!) {
+    createApp(appName: $appName) {
+      id
+      appName
+      status
+      createdAt
+    }
+  }
+`;
+
+export const GENERATE_DOCUMENTS_FOR_APP_MUTATION = gql`
+  mutation GenerateDocumentsForApp($documentId: ID!, $answers: [AnswerInput!]!) {
+    generateDocumentsForApp(documentId: $documentId, answers: $answers) {
+      id
+      appName
+      privacyPolicy
+      termsOfService
+      status
+      createdAt
+    }
+  }
+`;
+
 export const GENERATE_DOCUMENTS_MUTATION = gql`
   mutation GenerateDocuments($appName: String!, $answers: [AnswerInput!]!) {
     generateDocuments(appName: $appName, answers: $answers) {

@@ -165,6 +165,47 @@ export const resolvers = {
             };
         },
 
+        // Create a new app with just a name (no documents generated yet)
+        createApp: async (_, { appName }, context) => {
+            const user = requireAuth(context);
+
+            // Create app without documents
+            const document = await documentService.createApp(user.id, appName);
+
+            return document;
+        },
+
+        // Generate documents for an existing app
+        generateDocumentsForApp: async (_, { documentId, answers }, context) => {
+            const user = requireAuth(context);
+
+            // Get the document to verify ownership
+            const doc = await documentService.getDocumentById(documentId);
+            if (!doc || doc.userId !== user.id) {
+                throw new Error('Document not found or access denied');
+            }
+
+            // Build app data from answers
+            const appData = { appName: doc.appName };
+            const questions = await questionService.getQuestions();
+
+            for (const answer of answers) {
+                const question = questions.find((q) => q.id === answer.questionId);
+
+                if (question) {
+                    // Use the question id as the key for cleaner data structure
+                    appData[question.id] = answer.value;
+                }
+            }
+
+            console.log('Generated appData for existing app:', appData);
+
+            // Generate documents for existing app
+            const document = await documentService.generateDocumentsForApp(documentId, appData);
+
+            return document;
+        },
+
         generateDocuments: async (_, { appName, answers }, context) => {
             const user = requireAuth(context);
 

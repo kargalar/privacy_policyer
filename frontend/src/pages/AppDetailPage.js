@@ -12,8 +12,10 @@ import {
     DELETE_APP_IMAGE_MUTATION,
     GET_DOCUMENT_USAGE,
     GENERATE_APP_DESCRIPTION_MUTATION,
+    GENERATE_DOCUMENTS_FOR_APP_MUTATION,
 } from '../graphql/queries';
 import { useAuth } from '../context/AuthContext';
+import { questions as staticQuestions, shouldShowQuestion, getQuestionsBySection } from '../data/questions';
 import {
     AlertCircle,
     Loader,
@@ -38,6 +40,7 @@ import {
     DollarSign,
     TrendingUp,
     Calendar,
+    Plus,
     Type,
 } from 'lucide-react';
 
@@ -117,6 +120,10 @@ const AppDetailPage = () => {
     const [generatedShortDesc, setGeneratedShortDesc] = useState('');
     const [generatedLongDesc, setGeneratedLongDesc] = useState('');
     const [imageCount, setImageCount] = useState(1); // Number of images to generate
+    // Document creation state
+    const [showDocumentForm, setShowDocumentForm] = useState(false);
+    const [documentAnswers, setDocumentAnswers] = useState({});
+    const [documentError, setDocumentError] = useState('');
 
     const { data: documentData, loading, refetch, stopPolling } = useQuery(GET_DOCUMENT_QUERY, {
         variables: { id },
@@ -184,6 +191,18 @@ const AppDetailPage = () => {
             refetch();
         },
         onError: (error) => alert('Error: ' + error.message),
+    });
+
+    const [generateDocumentsForAppMutation, { loading: generatingDocuments }] = useMutation(GENERATE_DOCUMENTS_FOR_APP_MUTATION, {
+        onCompleted: () => {
+            setShowDocumentForm(false);
+            setDocumentAnswers({});
+            setDocumentError('');
+            refetch();
+        },
+        onError: (error) => {
+            setDocumentError(error.message || 'Failed to generate documents');
+        },
     });
 
     const [generateAppImageMutation] = useMutation(GENERATE_APP_IMAGE_MUTATION, {
@@ -284,6 +303,41 @@ const AppDetailPage = () => {
         if (window.confirm('Are you sure you want to delete this app? This action cannot be undone!')) {
             deleteDocumentMutation({ variables: { documentId: id } });
         }
+    };
+
+    const handleDocumentAnswerChange = (questionId, value) => {
+        setDocumentAnswers((prev) => ({
+            ...prev,
+            [questionId]: value,
+        }));
+    };
+
+    const handleGenerateDocuments = async () => {
+        setDocumentError('');
+
+        // Check if all required questions are answered
+        const allAnswered = staticQuestions
+            .filter((q) => q.required)
+            .every((q) => documentAnswers[q.id]);
+
+        if (!allAnswered) {
+            setDocumentError('Please answer all required questions');
+            return;
+        }
+
+        const answerInputs = staticQuestions
+            .filter((q) => documentAnswers[q.id])
+            .map((q) => ({
+                questionId: q.id,
+                value: documentAnswers[q.id].toString(),
+            }));
+
+        await generateDocumentsForAppMutation({
+            variables: {
+                documentId: id,
+                answers: answerInputs,
+            },
+        });
     };
 
     const handleEditStart = () => {
@@ -656,8 +710,190 @@ const AppDetailPage = () => {
                 {/* DOCUMENTS TAB */}
                 {mainTab === 'documents' && (
                     <>
-                        {/* Action Buttons */}
-                        {document.status === 'DRAFT' && (
+                        {/* Show Create Document Form if no privacy policy exists */}
+                        {!document.privacyPolicy && !showDocumentForm && (
+                            <div className="mb-8 bg-indigo-50 border border-indigo-200 rounded-lg p-8 text-center">
+                                <FileText className="w-16 h-16 text-indigo-400 mx-auto mb-4" />
+                                <h2 className="text-xl font-semibold text-indigo-900 mb-2">No Documents Yet</h2>
+                                <p className="text-indigo-700 mb-6">
+                                    Create privacy policy and terms of service for your app by answering a few questions.
+                                </p>
+                                <button
+                                    onClick={() => setShowDocumentForm(true)}
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
+                                >
+                                    <Plus className="w-5 h-5" />
+                                    Create New Document
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Document Creation Form */}
+                        {showDocumentForm && (
+                            <div className="mb-8 bg-white border border-gray-200 rounded-lg shadow-md">
+                                <div className="p-6 border-b border-gray-200">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-xl font-semibold text-gray-900">Create New Document</h2>
+                                        <button
+                                            onClick={() => {
+                                                setShowDocumentForm(false);
+                                                setDocumentAnswers({});
+                                                setDocumentError('');
+                                            }}
+                                            className="p-2 text-gray-500 hover:text-gray-700 transition"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                    <p className="text-gray-600 mt-1">Answer the questions below to generate your documents</p>
+                                </div>
+
+                                <div className="p-6">
+                                    {documentError && (
+                                        <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 rounded-lg p-4">
+                                            <AlertCircle className="w-5 h-5 text-red-600" />
+                                            <span className="text-red-700">{documentError}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Progress Indicator */}
+                                    <div className="mb-6">
+                                        {(() => {
+                                            const sections = getQuestionsBySection(documentAnswers);
+                                            const sectionNames = Object.keys(sections);
+                                            const totalVisible = Object.values(sections).flat().length;
+                                            const answered = Object.keys(documentAnswers).filter(k => documentAnswers[k] !== '').length;
+                                            return (
+                                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                    <span className="font-medium">{answered}/{totalVisible} questions answered</span>
+                                                    <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                                        <div 
+                                                            className="bg-indigo-600 h-2 rounded-full transition-all duration-300" 
+                                                            style={{ width: `${totalVisible > 0 ? (answered / totalVisible) * 100 : 0}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    {/* Questions by Section */}
+                                    <div className="space-y-8">
+                                        {Object.entries(getQuestionsBySection(documentAnswers)).map(([sectionName, sectionQuestions]) => (
+                                            <div key={sectionName} className="border border-gray-200 rounded-lg overflow-hidden">
+                                                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                                                    <h3 className="font-semibold text-gray-800">{sectionName}</h3>
+                                                </div>
+                                                <div className="p-4 space-y-6">
+                                                    {sectionQuestions.map((question) => (
+                                                        <div key={question.id} className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
+                                                            <label className="block text-base font-medium text-gray-900 mb-2">
+                                                                {question.question}
+                                                                {question.required && <span className="text-red-600 ml-1">*</span>}
+                                                            </label>
+
+                                                            {question.description && (
+                                                                <p className="text-gray-600 text-sm mb-3">
+                                                                    {question.description}
+                                                                </p>
+                                                            )}
+
+                                                            {question.type === 'TEXT' && (
+                                                                <input
+                                                                    type="text"
+                                                                    value={documentAnswers[question.id] || ''}
+                                                                    onChange={(e) => handleDocumentAnswerChange(question.id, e.target.value)}
+                                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                                    placeholder="Enter your answer..."
+                                                                />
+                                                            )}
+
+                                                            {question.type === 'EMAIL' && (
+                                                                <input
+                                                                    type="email"
+                                                                    value={documentAnswers[question.id] || ''}
+                                                                    onChange={(e) => handleDocumentAnswerChange(question.id, e.target.value)}
+                                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                                    placeholder="email@example.com"
+                                                                />
+                                                            )}
+
+                                                            {question.type === 'TEXTAREA' && (
+                                                                <textarea
+                                                                    value={documentAnswers[question.id] || ''}
+                                                                    onChange={(e) => handleDocumentAnswerChange(question.id, e.target.value)}
+                                                                    rows="3"
+                                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                                    placeholder="Enter your detailed answer..."
+                                                                />
+                                                            )}
+
+                                                            {question.type === 'SELECT' && (
+                                                                <select
+                                                                    value={documentAnswers[question.id] || ''}
+                                                                    onChange={(e) => handleDocumentAnswerChange(question.id, e.target.value)}
+                                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                                                                >
+                                                                    <option value="">Select an option...</option>
+                                                                    {question.options?.map((option) => (
+                                                                        <option key={option} value={option}>
+                                                                            {option}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            )}
+
+                                                            {question.type === 'BOOLEAN' && (
+                                                                <div className="flex gap-4">
+                                                                    <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition ${documentAnswers[question.id] === 'true' ? 'bg-green-50 border-green-500 text-green-700' : 'border-gray-300 hover:bg-gray-50'}`}>
+                                                                        <input
+                                                                            type="radio"
+                                                                            name={question.id}
+                                                                            value="true"
+                                                                            checked={documentAnswers[question.id] === 'true'}
+                                                                            onChange={(e) => handleDocumentAnswerChange(question.id, e.target.value)}
+                                                                            className="sr-only"
+                                                                        />
+                                                                        <Check className={`w-4 h-4 ${documentAnswers[question.id] === 'true' ? 'text-green-600' : 'text-gray-400'}`} />
+                                                                        <span className="font-medium">Yes</span>
+                                                                    </label>
+                                                                    <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition ${documentAnswers[question.id] === 'false' ? 'bg-red-50 border-red-500 text-red-700' : 'border-gray-300 hover:bg-gray-50'}`}>
+                                                                        <input
+                                                                            type="radio"
+                                                                            name={question.id}
+                                                                            value="false"
+                                                                            checked={documentAnswers[question.id] === 'false'}
+                                                                            onChange={(e) => handleDocumentAnswerChange(question.id, e.target.value)}
+                                                                            className="sr-only"
+                                                                        />
+                                                                        <X className={`w-4 h-4 ${documentAnswers[question.id] === 'false' ? 'text-red-600' : 'text-gray-400'}`} />
+                                                                        <span className="font-medium">No</span>
+                                                                    </label>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="mt-6 pt-6 border-t border-gray-200">
+                                        <button
+                                            onClick={handleGenerateDocuments}
+                                            disabled={generatingDocuments}
+                                            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        >
+                                            {generatingDocuments && <Loader className="w-4 h-4 animate-spin" />}
+                                            {generatingDocuments ? 'Generating Documents...' : 'Generate Documents'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Action Buttons - Only show when documents exist */}
+                        {document.privacyPolicy && document.status === 'DRAFT' && (
                             <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-6 flex items-center justify-between">
                                 <div>
                                     <h2 className="font-semibold text-blue-900 mb-1">Document is in Draft Status</h2>
@@ -687,11 +923,12 @@ const AppDetailPage = () => {
                             </div>
                         )}
 
-                        {document.status === 'PUBLISHED' && (
-                            <div className="mb-8 bg-purple-50 border border-purple-200 rounded-lg p-6">
+                        {document.privacyPolicy && document.status === 'PUBLISHED' && (
+                            <div className="mb-8 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6">
                                 <div className="flex items-center gap-2 mb-4">
                                     <Globe className="w-5 h-5 text-purple-600" />
-                                    <h2 className="font-semibold text-purple-900">Documents Published! 🎉</h2>
+                                    <h3 className="font-semibold text-purple-900">Public URLs</h3>
+                                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">Published</span>
                                 </div>
                                 <div className="space-y-3">
                                     <div className="bg-white rounded p-4 border border-purple-200">
@@ -807,7 +1044,8 @@ const AppDetailPage = () => {
                             </div>
                         )}
 
-                        {/* Document Sub-tabs */}
+                        {/* Document Sub-tabs - Only show when documents exist */}
+                        {document.privacyPolicy && (
                         <div className="mb-6 flex gap-2 border-b border-gray-200 overflow-x-auto">
                             <button
                                 onClick={() => setDocumentTab('privacy')}
@@ -839,9 +1077,10 @@ const AppDetailPage = () => {
                                 </button>
                             )}
                         </div>
+                        )}
 
-                        {/* Document Content */}
-                        {documentTab !== 'deletions' && (
+                        {/* Document Content - Only show when documents exist */}
+                        {document.privacyPolicy && documentTab !== 'deletions' && (
                             <div className="bg-white rounded-lg shadow-md p-8">
                                 <div className="flex justify-end mb-6">
                                     <button
@@ -860,8 +1099,8 @@ const AppDetailPage = () => {
                             </div>
                         )}
 
-                        {/* Deletion Requests */}
-                        {documentTab === 'deletions' && (
+                        {/* Deletion Requests - Only show when documents exist */}
+                        {document.privacyPolicy && documentTab === 'deletions' && (
                             <div className="bg-white rounded-lg shadow-md p-8">
                                 <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
                                     <AlertCircle className="w-5 h-5 text-red-600" />

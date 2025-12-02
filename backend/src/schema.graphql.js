@@ -170,8 +170,12 @@ export const typeDefs = `#graphql
     register(email: String!, password: String!, username: String!): User!
     login(email: String!, password: String!): AuthPayload!
     
+    # Apps
+    createApp(appName: String!): Document!
+    
     # Documents
     generateDocuments(appName: String!, answers: [AnswerInput!]!): Document!
+    generateDocumentsForApp(documentId: ID!, answers: [AnswerInput!]!): Document!
     approveDocument(documentId: ID!): Document!
     updateDocument(documentId: ID!, appName: String!, appDescription: String, privacyPolicy: String!, termsOfService: String!): Document!
     publishDocument(documentId: ID!): Document!

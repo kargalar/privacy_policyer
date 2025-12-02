@@ -28,20 +28,6 @@ model User {
   @@map("users")
 }
 
-model Question {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  question    String
-  description String?
-  type        String
-  required    Boolean  @default(true)
-  options     Json?
-  sortOrder   Int?     @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@map("questions")
-}
-
 model Document {
   id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId           String   @map("user_id") @db.Uuid
