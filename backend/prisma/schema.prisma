@@ -77,6 +77,7 @@ model AppImage {
   id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   documentId     String   @map("document_id") @db.Uuid
   imageType      String   @map("image_type") // APP_ICON, FEATURE_GRAPHIC, STORE_SCREENSHOT
+  style          String?  // Style used for image generation
   prompt         String?
   cloudinaryUrl  String   @map("cloudinary_url")
   cloudinaryId   String   @map("cloudinary_id")
