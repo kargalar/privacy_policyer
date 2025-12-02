@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@apollo/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { GET_MY_DOCUMENTS_QUERY } from '../graphql/queries';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -133,10 +133,10 @@ const AppsPage = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {apps.map((app) => (
-                            <div
+                            <Link
                                 key={app.id}
-                                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition cursor-pointer"
-                                onClick={() => navigate(`/apps/${app.id}`)}
+                                to={`/apps/${app.id}`}
+                                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition block"
                             >
                                 <div className="flex items-start justify-between mb-4">
                                     <Smartphone className="w-8 h-8 text-indigo-600" />
@@ -166,7 +166,7 @@ const AppsPage = () => {
                                     Manage App
                                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
                                 </div>
-                            </div>
+                            </Link>
                         ))}
                     </div>
                 )}
